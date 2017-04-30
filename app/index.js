@@ -10,7 +10,7 @@ function _L(f){
 }
 
 function run(db, port){
-    lwm.db(db);
+    lwm.init(db);
     server.listen(port, (err) => {
         if (err){
             throw err;

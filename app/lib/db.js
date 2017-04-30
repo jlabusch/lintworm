@@ -17,7 +17,7 @@ function DB(){
     this.config.host = this.config.host || 'catwgtn-prod-pg92.db.catalyst.net.nz';
 
     pg.on('error', function(err){
-        log.error(_L('pg#error') + err);
+        log.error(_L('pg#error') + (err.stack || err));
         reconnect(self);
     });
 
@@ -34,7 +34,7 @@ function reconnect(o, done){
     o.client = new pg.Client(o.config);
     o.client.connect(function(err){
         if (err){
-            log.error(label + "Couldn't connect to database: " + err);
+            log.error(label + "Couldn't connect to database: " + (err.stack || err));
             setTimeout(function(){ reconnect(o) }, 5*1000);
         }else{
             log.info(label + "Connected to database");
@@ -43,9 +43,10 @@ function reconnect(o, done){
     });
 }
 
+// Usage: db.query('query_name', sql, [args,] handler_fn);
 DB.prototype.query = function(){
     if (!this.client){
-        log.error(_L('DB#query') + 'query aborted, null client');
+        throw new Error(_L('DB#query') + 'query aborted, null client');
     }
     let start = new Date(),
         args = Array.prototype.slice.call(arguments, 0),
@@ -53,9 +54,14 @@ DB.prototype.query = function(){
         label = _L('DB#query(' + query_name + ')'),
         handler = args[args.length-1];
 
+    if (typeof(handler) !== 'function'){
+        throw new Error(label + 'no handler for query "' + query_name + '"');
+    }
+
     let proxy = function(err, data){
         let end = new Date();
-        log.info(label + 'rtt ' + (end.getTime() - start.getTime()) + 'ms');
+        data = data || {rows: []};
+        log.info(label + data.rows.length + ' rows, rtt ' + (end.getTime() - start.getTime()) + 'ms');
         return handler(err, JSON.parse(JSON.stringify(data)));
     };
     args[args.length-1] = proxy;
@@ -64,6 +70,6 @@ DB.prototype.query = function(){
 
 module.exports = {
     type: DB,
-    create: function(cfg){ return new DB(cfg) }
+    create: function(){ return new DB() }
 }
 

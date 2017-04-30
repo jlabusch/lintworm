@@ -1,8 +1,10 @@
-var config  = require('config'),
+var //config  = require('config'),
     restify = require('restify'),
     log     = require('./log'),
     pkg     = require('../package.json'),
     lwm     = require('./lintworm');
+
+const GENERIC_ERROR = {error: 'Service interruption - please try again later'};
 
 'use strict';
 
@@ -29,6 +31,10 @@ server.use((req, res, next) => {
 server.use(restify.bodyParser({mapParams: true}));
 server.use(restify.queryParser({mapParams: true}));
 server.on('after', restify.auditLogger({log: log}));
+server.on('uncaughtException', (req, res, route, err) => {
+    log.error('restify#uncaughtException - ' + err.stack);
+    res.send(500, GENERIC_ERROR);
+});
 
 function setup(method, uri, handler){
     // Preflight
@@ -45,3 +51,27 @@ setup('get', '/ping', (req, res, next) => {
     return next();
 });
 
+function query_response(label, res, filter, next){
+    return function(err, data){
+        if (err){
+            log.error(label + (err.stack || err));
+            res.send(500, GENERIC_ERROR);
+        }else{
+            filter = filter || function(x){ return x };
+            res.json(filter(data.rows));
+        }
+        next(false);
+    }
+}
+
+setup('get', '/poll/:n', (req, res, next) => {
+    lwm.poll(
+        req.params.n,
+        query_response(
+            _L('poll'),
+            res,
+            (rows) => { return rows },
+            next
+        )
+    );
+});
