@@ -64,9 +64,8 @@ function query_response(label, res, filter, next){
     }
 }
 
-setup('get', '/poll/:n', (req, res, next) => {
+setup('get', '/poll', (req, res, next) => {
     lwm.poll(
-        req.params.n,
         query_response(
             _L('poll'),
             res,
