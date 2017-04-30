@@ -1,0 +1,18 @@
+version: "2"
+
+services:
+
+    app:
+        image: jlabusch/lintworm
+        build: app
+        ports:
+            - "8000:80"
+        entrypoint:
+            - npm
+            - start
+        volumes:
+            - ./app/lib:/opt/lib:ro
+            - ./config:/opt/config:ro
+            - ./app/index.js:/opt/index.js:ro
+            - ./app/.eslintrc.json:/opt/.eslintrc.json:ro
+

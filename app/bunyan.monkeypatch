@@ -1,0 +1,27 @@
+--- node_modules/bunyan/bin/bunyan	2017-04-05 07:34:16.000000000 +0100
++++ node_modules/bunyan/bin/bunyan	2017-04-29 23:24:54.596791056 +0100
+@@ -1081,9 +1081,21 @@
+         if (!isValidRecord(rec)) {
+             return emit(line + '\n');
+         }
+-        emit(format('%s - %s\n',
+-            upperNameFromLevel[rec.level] || 'LVL' + rec.level,
+-            rec.msg));
++        if (rec.time && rec.hostname && rec.req && rec.res){
++            emit(format('%s - %s\n',
++                upperNameFromLevel[rec.level] || 'LVL' + rec.level,
++                [
++                    rec.time,
++                    rec.hostname,
++                    rec.req.method,
++                    rec.res.statusCode,
++                    rec.req.url
++                ].join(' ')));
++        }else{
++            emit(format('%s - %s\n',
++                upperNameFromLevel[rec.level] || 'LVL' + rec.level,
++                rec.msg));
++        }
+         break;
+     default:
+         throw new Error('unknown output mode: '+opts.outputMode);

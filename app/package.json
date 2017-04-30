@@ -1,0 +1,43 @@
+{
+  "name": "lintworm",
+  "version": "1.0.0",
+  "description": "Lint for WRMS workflows",
+  "scripts": {
+    "test": "./node_modules/istanbul/lib/cli.js cover ./node_modules/mocha/bin/_mocha -- -R spec | ./node_modules/.bin/bunyan -L -o simple",
+    "start": "node index.js | ./node_modules/.bin/bunyan -L -o simple"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jlabusch/lintworm.git"
+  },
+  "dependencies": {
+    "config": "~1.2",
+    "pg": "~6",
+    "qs": "~6.4",
+    "restify": "~4.3",
+    "bunyan": "~1.8"
+  },
+  "devDependencies": {
+    "browserify": "~14",
+    "eslint": "~3.19",
+    "eslint-plugin-import": "*",
+    "eslint-plugin-node": "*",
+    "eslint-plugin-standard": "*",
+    "eslint-plugin-promise": "*",
+    "eslint-config-standard": "*",
+    "istanbul": "~0.4",
+    "mocha": "~3.3",
+    "reactify": "~1.1",
+    "should": "~11.2",
+    "superagent": "~3.5"
+  },
+  "keywords": [
+    "WRMS"
+  ],
+  "author": "Jacques Labuschagne",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/jlabusch/lintworm/issues"
+  },
+  "homepage": "https://github.com/jlabusch/lintworm"
+}
