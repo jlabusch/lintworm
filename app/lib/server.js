@@ -32,7 +32,7 @@ server.use(restify.bodyParser({mapParams: true}));
 server.use(restify.queryParser({mapParams: true}));
 server.on('after', restify.auditLogger({log: log}));
 server.on('uncaughtException', (req, res, route, err) => {
-    log.error('restify#uncaughtException - ' + err.stack);
+    log.error('restify.uncaughtException - ' + err.stack);
     res.send(500, GENERIC_ERROR);
 });
 
@@ -69,8 +69,29 @@ setup('get', '/poll', (req, res, next) => {
         query_response(
             _L('poll'),
             res,
-            (rows) => { return rows },
+            null,
             next
         )
     );
 });
+
+setup('get', '/lint/:wr', (req, res, next) => {
+    const wr = parseInt(req.params.wr),
+        label = _L('lint');
+    if (isNaN(wr)){
+        log.warn(label + "Invalid WR number");
+        res.send(400, {error: "Invalid WR number"});
+        next(false);
+        return;
+    }
+    lwm.lint(
+        wr,
+        query_response(
+            label,
+            res,
+            null,
+            next
+        )
+    );
+});
+

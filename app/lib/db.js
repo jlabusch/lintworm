@@ -17,7 +17,7 @@ function DB(){
     this.config.host = this.config.host || 'catwgtn-prod-pg92.db.catalyst.net.nz';
 
     pg.on('error', function(err){
-        log.error(_L('pg#error') + (err.stack || err));
+        log.error(_L('pg.error') + (err.stack || err));
         reconnect(self);
     });
 
@@ -46,23 +46,27 @@ function reconnect(o, done){
 // Usage: db.query('query_name', sql, [args,] handler_fn);
 DB.prototype.query = function(){
     if (!this.client){
-        throw new Error(_L('DB#query') + 'query aborted, null client');
+        throw new Error(_L('DB.query') + 'query aborted, null client');
     }
     let start = new Date(),
         args = Array.prototype.slice.call(arguments, 0),
         query_name = args.shift(),
-        label = _L('DB#query(' + query_name + ')'),
+        label = _L('DB.query(' + query_name + ')'),
         handler = args[args.length-1];
 
     if (typeof(handler) !== 'function'){
         throw new Error(label + 'no handler for query "' + query_name + '"');
     }
 
+    log.debug(label + args[0]);
+
     let proxy = function(err, data){
         let end = new Date();
         data = data || {rows: []};
         log.info(label + data.rows.length + ' rows, rtt ' + (end.getTime() - start.getTime()) + 'ms');
-        return handler(err, JSON.parse(JSON.stringify(data)));
+        let result = JSON.stringify(data, null, 2);
+        log.trace(result);
+        return handler(err, JSON.parse(result));
     };
     args[args.length-1] = proxy;
     this.client.query.apply(this.client, args);
