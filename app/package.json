@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Lint for WRMS workflows",
   "scripts": {
+    "pretest": "./node_modules/.bin/eslint ./index.js ./lib/*.js",
     "test": "./node_modules/istanbul/lib/cli.js cover ./node_modules/mocha/bin/_mocha -- -R spec | ./node_modules/.bin/bunyan -L -o simple",
     "start": "node index.js | ./node_modules/.bin/bunyan -L -o simple"
   },

@@ -9,7 +9,7 @@ function _L(f){
 }
 
 function DB(){
-    var self = this;
+    let self = this;
 
     this.client = null;
     this.config = config.get('db');
@@ -25,7 +25,7 @@ function DB(){
 }
 
 function reconnect(o, done){
-    var label = _L('reconnect');
+    let label = _L('reconnect');
     if (o.client){
         try{
             o.client.end();
@@ -47,21 +47,17 @@ DB.prototype.query = function(){
     if (!this.client){
         log.error(_L('DB#query') + 'query aborted, null client');
     }
-    var start = new Date(),
+    let start = new Date(),
         args = Array.prototype.slice.call(arguments, 0),
         query_name = args.shift(),
         label = _L('DB#query(' + query_name + ')'),
         handler = args[args.length-1];
 
-    var proxy = function(err, data){
-            var end = new Date();
-            log.info(label + 'rtt ' + (end.getTime() - start.getTime()) + 'ms');
-            if (!err){
-                log.debug('store ' + cache_key + ' -> ' + JSON.stringify(data).length + ' bytes');
-                cache[cache_key] = {data: data, time: new Date()};
-            }
-            return handler(err, JSON.parse(JSON.stringify(data)));
-        };
+    let proxy = function(err, data){
+        let end = new Date();
+        log.info(label + 'rtt ' + (end.getTime() - start.getTime()) + 'ms');
+        return handler(err, JSON.parse(JSON.stringify(data)));
+    };
     args[args.length-1] = proxy;
     this.client.query.apply(this.client, args);
 }

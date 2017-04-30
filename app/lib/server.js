@@ -19,9 +19,9 @@ module.exports = server;
 
 server.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
-    var m = req.headers['access-control-request-method'];
+    let m = req.headers['access-control-request-method'];
     if (m)  res.setHeader('Access-Control-Allow-Methods', m);
-    var h = req.headers['access-control-request-headers'];
+    let h = req.headers['access-control-request-headers'];
     if (h)  res.setHeader('Access-Control-Allow-Headers', h);
     return next();
 });
