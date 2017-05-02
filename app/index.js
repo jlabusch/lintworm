@@ -1,6 +1,7 @@
 var config  = require('config'),
     log     = require('./lib/log'),
     server  = require('./lib/server'),
+    notifier= require('./lib/notifier'),
     lwm     = require('./lib/lintworm');
 
 'use strict';
@@ -11,6 +12,7 @@ function _L(f){
 
 function run(db, port){
     lwm.init(db);
+    notifier.start();
     server.listen(port, (err) => {
         if (err){
             throw err;

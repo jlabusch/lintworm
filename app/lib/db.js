@@ -58,12 +58,12 @@ DB.prototype.query = function(){
         throw new Error(label + 'no handler for query "' + query_name + '"');
     }
 
-    log.debug(label + args[0]);
+    log.trace(label + args[0]);
 
     let proxy = function(err, data){
         let end = new Date();
         data = data || {rows: []};
-        log.info(label + data.rows.length + ' rows, rtt ' + (end.getTime() - start.getTime()) + 'ms');
+        log.debug(label + data.rows.length + ' rows, rtt ' + (end.getTime() - start.getTime()) + 'ms');
         let result = JSON.stringify(data, null, 2);
         log.trace(result);
         return handler(err, JSON.parse(result));
