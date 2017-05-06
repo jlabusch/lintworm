@@ -211,7 +211,7 @@ Lintworm.prototype.lint = function(wr, next) {
                         if (err){ return next(err) }
                         this.db.query('lint.relations', lint_parent_sql, [wr], (err, parent_data) => {
                             if (err){ return next(err) }
-                            apply_lint_rules(
+                            this.__apply_lint_rules(
                                 wr,
                                 req_data,
                                 alloc_data,
@@ -237,141 +237,99 @@ function format_author(row){
     return row.email;
 }
 
-function apply_lint_rules(wr, req, alloc, quote, tags, activity, parents, next){
-    const label = _L('apply_lint_rules');
-    let res = [],
-        author = [];
-    // TODO:
-    //  - Have we been timesheeting without updating the WR notes?
+Lintworm.prototype.__format_author = format_author;
 
-    // Is it assigned?
+Lintworm.prototype.__apply_lint_rules = function(wr, req, alloc, quote, tags, activity, parents, next){
+    const label = _L('__apply_lint_rules');
+
+    let res = [],
+        author = [],
+        context = {
+            wr: wr,
+            req: req,
+            alloc: alloc,
+            quote: quote,
+            tags: tags,
+            activity: activity,
+            parents: parents
+        };
+
+    let rules = require('./lint_rules');
+
+    if (rules.unallocated(context)){
+        res.push({warning: 'Unallocated', score: -10});
+    }else if (rules.multiple_allocations(context)){
+        res.push({warning: 'Allocated to multiple people', score: -5});
+    }
+
     if (contains_row_data(alloc)){
-        if (alloc.rows.length > 2){ // allow some slack for the sysadmin allocations
-            res.push({warning: 'Allocated to multiple people', score: -5});
-        }
         alloc.rows.forEach((x) => {
-            if (!x.email || !x.fullname){
-                log.error(label + 'invalid user: ' + JSON.stringify(x, null, 2));
-                res.push({
-                    error: `Allocated to invalid user ${x.fullname} <${x.email}>`,
-                    score: -5
-                });
-                return;
-            }
-            if (x.email.match(/catalyst/) && x.fullname !== 'Catalyst Sysadmin Europe'){
+            if (x.email &&
+                x.fullname &&
+                x.email.match(/catalyst/) &&
+                x.fullname !== 'Catalyst Sysadmin Europe')
+            {
                 author.push(format_author(x));
             }
         });
-    }else{
-        if (req.status !== 'Finished' && req.status !== 'Cancelled'){
-            res.push({warning: 'Unallocated', score: -10});
-        }
     }
-    if (req.total_hours){
-        //  If work done, is it quoted?
-        if (contains_row_data(quote)){
-            let sq = sum_quotes(quote.rows);
-            //  Are the quotes approved?
-            if (sq.approved < req.total_hours){
-                res.push({
-                    warning: `Over approved budget by ${req.total_hours-sq.approved} hours`,
-                    score: -10
-                });
-            }
-            if (sq.quoted < req.total_hours){
-                res.push({
-                    warning: `Over requested budget by ${req.total_hours-sq.quoted} hours`,
-                    score: -10
-                });
-            }
-        }else{
-            // If not quoted, does it have "warranty" tag?
-            let warranty = false;
-            tags.forEach((t) => {
-                if (t.tag_description.match(/^warranty$/i)){
-                    warranty = true;
-                }
-            });
-            if (warranty){
-                res.push({
-                    info: `Found warranty tag`,
-                    score: 20
-                });
-            }else{
-                let parent_quote = false;
-                // Is there a direct or indirect parent WR with a quote?
-                if (contains_row_data(parents)){
-                    let dpq = {quoted: 0, approved: 0};
-                    parents.row.forEach((r) => {
-                        if (r.quoted_hours){   dpq.quoted   += r.quoted_hours   }
-                        if (r.approved_hours){ dpq.approved += r.approved_hours }
-                    });
-                    parent_quote = !!(dpq.quoted || dpq.approved);
-                    if (parent_quote){
-                        let over = false;
-                        if (dpq.approved < req.total_hours){
-                            over = true;
-                            res.push({
-                                warning: `Over parent WR's approved budget by ${req.total_hours-dpq.approved_hours} hours (without checking siblings)`,
-                                score: -10
-                            });
-                        }
-                        if (dpq.quoted < req.total_hours){
-                            over = true;
-                            res.push({
-                                warning: `Over parent WR's requested budget by ${req.total_hours-dpq.quoted_hours} hours (without checking siblings)`,
-                                score: -10
-                            });
-                        }
-                        if (!over){
-                            res.push({
-                                info: `Within parent WR's quoted budget, but haven't considered other related WRs`,
-                                score: -5
-                            });
-                        }
-                    }
-                }
 
-                if (!parent_quote){
-                    res.push({
-                        warning: `${req.total_hours} timesheeted with no quotes`,
-                        score: -20
-                    });
-                }
-            }
-        }
-    }else{
-        // If it has more than 1 note from us, have we timesheeted at all?
-        if (contains_row_data(activity)){
-            let updater = undefined;
-            let notes = activity.rows.reduce(
-                (acc, val) => {
-                    if (!val.email){
-                        log.trace(label + 'invalid user: ' + JSON.stringify(val, null, 2));
-                        return;
-                    }
-                    if (val.email.match(/catalyst/i)){
-                        ++acc;
-                        updater = format_author(val);
-                    }
-                },
-                0
-            );
-            if (notes > 1){
-                res.push({
-                    warning: `${notes} note${notes === 1 ? '' : 's'} from us with no timesheets`,
-                    score: -5
-                });
-            }
-            if (updater && author.findIndex((x) => { return x === updater }) < 0){
-                author.push(updater);
-            }
+    if (rules.under_warranty(context)){
+        res.push({
+            info: `Found warranty tag`,
+            score: 20
+        });
+    }else if (rules.exceeds_requested_budget(context)){
+        res.push({
+            warning: `Over requested budget by ${req.total_hours - context.sum_quotes.total.quoted} hours`,
+            score: -20
+        });
+    }else if (rules.exceeds_approved_budget(context)){
+        res.push({
+            warning: `Over approved budget by ${req.total_hours - context.sum_quotes.total.approved} hours`,
+            score: -10
+        });
+    }else if (rules.requires_parent_budget(context)){
+        res.push({
+            info: "Relies on parent WR quotes, but we haven't checked how much time was used by sibling WRs",
+            score: -5
+        });
+    }
+
+    if (rules.too_many_notes_with_no_timesheets(context)){
+        res.push({
+            warning: `${context.our_notes.length} notes from us with no timesheets`,
+            score: -5
+        });
+    }
+
+    if (context.last_comment && context.last_comment.client){
+        if (!context.last_comment.catalyst){
+            res.push({
+                warning: 'Client notes with no response from us',
+                score: -5
+            });
+        }else if (rules.being_chased_for_response(context)){
+            res.push({
+                warning: 'Client just bumped a forgotten ticket',
+                score: -5
+            });
         }
     }
-    if (res.length > 0){
+
+    // Add our last updater to authors if they're not there already
+    if (context.our_notes && context.our_notes.length){
+        let last_updater = format_author(context.our_notes[context.our_notes.length - 1]);
+        if (author.findIndex((x) => { return x === last_updater }) < 0){
+            author.push(last_updater);
+        }
+    }
+
+    let num_warnings = res.reduce((acc, val) => { return acc + (val.warning ? 1 : 0) }, 0);
+    if (num_warnings > 0){
         let score = res.reduce((acc, val) => { return acc+val.score }, 0);
         res.push({
-            msg: `${res.length} warning ${res.length === 1 ? '' : 's'}, final score ${score}`
+            msg: `${num_warnings} warning${num_warnings === 1 ? '' : 's'}, final score ${score}`
         });
     }else{
         res.push({msg: `No warnings for WR# ${wr}`});
@@ -384,23 +342,4 @@ function apply_lint_rules(wr, req, alloc, quote, tags, activity, parents, next){
 
 module.exports = new Lintworm();
 
-
-function sum_quotes(rows){
-    let quoted_hours = 0,
-        approved_hours = 0;
-    rows.forEach((r) => {
-        switch(r.quote_units)
-        {
-        case 'hours':
-            quoted_hours += r.quote_amount;
-            if (r.approved_by_id) approved_hours += r.quote_amount;
-            break;
-        case 'days':
-            quoted_hours += r.quote_amount*8;
-            if (r.approved_by_id) approved_hours += r.quote_amount*8;
-            break;
-        }
-    });
-    return {quoted: quoted_hours, approved: approved_hours};
-}
 

@@ -1,10 +1,12 @@
-.PHONY: test
+.PHONY: app test
 
 DOCKER=docker
 COMPOSE=docker-compose
 
-test:
+app:
 	$(COMPOSE) build app
+
+test: app
 	mkdir -p ../coverage
 	$(DOCKER) run -it --rm \
         -v $$(dirname $$PWD)/test:/opt/test:ro \
