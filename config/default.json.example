@@ -9,6 +9,9 @@
     "server": {
         "port": 80
     },
+    "lint": {
+        "quote_leeway": 1
+    },
     "chat_nicks": {
         "bob@example.com": "bob"
     },

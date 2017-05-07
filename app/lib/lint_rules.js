@@ -1,4 +1,6 @@
-var log = require('./log');
+var log = require('./log'),
+    config = require('config'),
+    quote_leeway = config.get('lint.quote_leeway');
 
 function _L(f){
     return require('path').basename(__filename) + '#' + f + ' - ';
@@ -87,7 +89,7 @@ exports.exceeds_approved_budget = function(context){
     if (contains_row_data(context.quote) && !context.sum_quotes){
         context.sum_quotes = sum_quotes(context.quote.rows);
     }
-    let a = context.sum_quotes ? context.sum_quotes.total.approved : 0,
+    let a = (context.sum_quotes ? context.sum_quotes.total.approved : 0) || quote_leeway,
         b = context.req.total_hours;
     log.trace(_L('exceeds_approved_budget') + `${a} - ${b} = ${a-b}`);
     return !under_warranty(context) && a - b < 0;
@@ -97,7 +99,7 @@ exports.exceeds_requested_budget = function(context){
     if (!context.sum_quotes){
         context.sum_quotes = sum_quotes(context.quote, context.parents);
     }
-    let a = context.sum_quotes ? context.sum_quotes.total.quoted : 0,
+    let a = (context.sum_quotes ? context.sum_quotes.total.quoted : 0) || quote_leeway,
         b = context.req.total_hours;
     log.trace(_L('exceeds_requested_budget') + `${a} - ${b} = ${a-b}`);
     return !under_warranty(context) && a - b < 0;
@@ -109,7 +111,8 @@ exports.requires_parent_budget = function(context){
     }
     return !under_warranty(context) &&
         context.sum_quotes ?
-            context.sum_quotes.wr.approved < context.req.total_hours :
+            context.sum_quotes.wr.approved < context.req.total_hours &&
+            context.sum_quotes.total.approved >= context.req.total_hours :
             false;
 }
 
