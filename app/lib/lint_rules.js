@@ -43,6 +43,7 @@ function sum_quotes(direct, indirect){
     };
     if (contains_row_data(direct)){
         direct.rows.forEach((r) => {
+            log.trace(_L('sum_quotes') + JSON.stringify(r));
             // lint_quote_sql query
             switch(r.quote_units)
             {

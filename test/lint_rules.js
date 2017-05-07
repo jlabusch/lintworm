@@ -1,5 +1,6 @@
 var assert  = require('assert'),
     config  = require('config'),
+    quote_leeway = config.get('lint.quote_leeway'),
     lwm = require('../lib/lintworm.js'),
     should  = require('should');
 
@@ -136,7 +137,7 @@ describe(require('path').basename(__filename), function(){
                 lwm,
                 setup(
                     (a) => {
-                        a[1].total_hours = 1;
+                        a[1].total_hours = quote_leeway + 1;
                         a[4].rows = [
                             {tag_description: 'A'},
                             {tag_description: 'Warranty'},
@@ -164,7 +165,7 @@ describe(require('path').basename(__filename), function(){
                         a[0] = 221615,
                         a[1] = {
                             request_id: 221615,
-                            total_hours: 8.15
+                            total_hours: quote_leeway+5
                         };
                         a[2].rows = [];
                     },
@@ -190,7 +191,7 @@ describe(require('path').basename(__filename), function(){
                 lwm,
                 setup(
                     (a) => {
-                        a[1].total_hours = 1;
+                        a[1].total_hours = quote_leeway+1;
                         a[3].rows = [
                             {quote_units: 'hours', quote_amount: 5, approved_by_id: undefined}
                         ]
@@ -215,7 +216,7 @@ describe(require('path').basename(__filename), function(){
                 lwm,
                 setup(
                     (a) => {
-                        a[1].total_hours = 1;
+                        a[1].total_hours = quote_leeway+1;
                         a[3].rows = [
                             {quote_units: 'hours', quote_amount: 5, approved_by_id: 1}
                         ]
@@ -228,6 +229,87 @@ describe(require('path').basename(__filename), function(){
                         should.exist(data.rows[0].wr);
                         should.exist(data.rows[0].msg);
                         should.exist(data.rows[0].msg.match(/^No warning/));
+                        done();
+                    }
+                )
+            );
+        });
+        it('should respect config.lint.quote_leeway', function(done){
+            lwm.__apply_lint_rules.apply(
+                lwm,
+                setup(
+                    (a) => {
+                        a[1].total_hours = quote_leeway;
+                        a[3].rows = [];
+                    },
+                    (err, data) => {
+                        should.not.exist(err);
+                        should.exist(data);
+                        should.exist(data.rows);
+                        data.rows.length.should.equal(1);
+                        should.exist(data.rows[0].wr);
+                        should.exist(data.rows[0].msg);
+                        should.exist(data.rows[0].msg.match(/^No warning/));
+                        done();
+                    }
+                )
+            );
+        });
+    });
+    describe('notes', function(){
+        it('should flag too many notes with no timesheets', function(done){
+            let today = (new Date()).toISOString();
+            lwm.__apply_lint_rules.apply(
+                lwm,
+                setup(
+                    (a) => {
+                        a[1].total_hours = 0;
+                        a[5].rows = [
+                            {source: 'note', email: 'a@b.c', updated_on: today},
+                            {source: 'note', email: 'me@catalyst-eu.net', updated_on: today},
+                            {source: 'note', email: 'a@b.c', updated_on: today},
+                            {source: 'note', email: 'me@catalyst-eu.net', updated_on: today}
+                        ];
+                    },
+                    (err, data) => {
+                        should.not.exist(err);
+                        should.exist(data);
+                        should.exist(data.rows);
+                        data.rows.length.should.equal(2);
+                        should.exist(data.rows[0].warning);
+                        should.exist(data.rows[0].warning.match(/notes .* with no time/));
+                        should.exist(data.rows[1].wr);
+                        should.exist(data.rows[1].msg);
+                        should.exist(data.rows[1].msg.match(/^1 warning/));
+                        done();
+                    }
+                )
+            );
+        });
+        it('should guess when client is chasing forgotten tickets', function(done){
+            let today = (new Date()).toISOString(),
+                last_week = (new Date(new Date().getTime()-14*24*60*60*1000)).toISOString();
+            lwm.__apply_lint_rules.apply(
+                lwm,
+                setup(
+                    (a) => {
+                        a[1].total_hours = 0;
+                        a[5].rows = [
+                            {source: 'note', email: 'a@b.c', updated_on: last_week},
+                            {source: 'note', email: 'me@catalyst-eu.net', updated_on: last_week},
+                            {source: 'note', email: 'a@b.c', updated_on: today},
+                        ];
+                    },
+                    (err, data) => {
+                        should.not.exist(err);
+                        should.exist(data);
+                        should.exist(data.rows);
+                        data.rows.length.should.equal(2);
+                        should.exist(data.rows[0].warning);
+                        should.exist(data.rows[0].warning.match(/forgotten/));
+                        should.exist(data.rows[1].wr);
+                        should.exist(data.rows[1].msg);
+                        should.exist(data.rows[1].msg.match(/^1 warning/));
                         done();
                     }
                 )
