@@ -56,7 +56,7 @@ const poll_sql =
                 JOIN usr ru on ru.user_no=r.requester_id
                 JOIN organisation o on o.org_code=ru.org_code
                 WHERE ra.date > $1 AND ra.date < $2
-                    AND o.org_code in (1137,1286,1328,1360,1423,1478,1484,1493,1521,1527,1562,1577,1597,1625,1690,1700,1724,1729,1730,1731,1739,1742,1743,1759)
+                    AND o.org_code in (1286,1328,1360,1423,1478,1484,1493,1521,1527,1562,1577,1597,1625,1690,1700,1724,1729,1730,1731,1739,1742,1743,1759)
                 ORDER BY ra.date ASC`;
 
 // Returns the list of WRs with updates we haven't processed yet.
