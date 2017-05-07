@@ -1,5 +1,9 @@
 var log = require('./log');
 
+function _L(f){
+    return require('path').basename(__filename) + '#' + f + ' - ';
+}
+
 'use strict'
 
 function contains_row_data(x){
@@ -60,7 +64,7 @@ function sum_quotes(direct, indirect){
     }
     result.total.quoted = result.wr.quoted + result.ancestor.quoted;
     result.total.approved = result.wr.approved + result.ancestor.approved;
-    log.trace('lint_rules.js#sum_quotes - ' + JSON.stringify(result, null, 2));
+    log.trace(_L('sum_quotes') + JSON.stringify(result, null, 2));
     return result;
 }
 
@@ -83,16 +87,20 @@ exports.exceeds_approved_budget = function(context){
     if (contains_row_data(context.quote) && !context.sum_quotes){
         context.sum_quotes = sum_quotes(context.quote.rows);
     }
-    return !under_warranty(context) &&
-        (context.sum_quotes ? context.sum_quotes.total.approved : 0) - context.req.total_hours < 0;
+    let a = context.sum_quotes ? context.sum_quotes.total.approved : 0,
+        b = context.req.total_hours;
+    log.trace(_L('exceeds_approved_budget') + `${a} - ${b} = ${a-b}`);
+    return !under_warranty(context) && a - b < 0;
 }
 
 exports.exceeds_requested_budget = function(context){
     if (!context.sum_quotes){
         context.sum_quotes = sum_quotes(context.quote, context.parents);
     }
-    return !under_warranty(context) &&
-        (context.sum_quotes ? context.sum_quotes.total.quoted : 0) - context.req.total_hours < 0;
+    let a = context.sum_quotes ? context.sum_quotes.total.quoted : 0,
+        b = context.req.total_hours;
+    log.trace(_L('exceeds_requested_budget') + `${a} - ${b} = ${a-b}`);
+    return !under_warranty(context) && a - b < 0;
 }
 
 exports.requires_parent_budget = function(context){

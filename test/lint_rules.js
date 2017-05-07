@@ -6,7 +6,7 @@ var assert  = require('assert'),
 function setup(pre, post){
     let a = [
         1234,
-        {total_hours: 0, status: 'New Request'}, // 1. req
+        {request_id: 1234, total_hours: 0, status: 'New Request'}, // 1. req
         {rows: [{email: 'a@b.c', fullname: 'A B'}]}, // 2. alloc
         {rows: []}, // 3. quote
         {rows: []}, // 4. tags
@@ -107,14 +107,13 @@ describe(require('path').basename(__filename), function(){
             );
         });
         it('...unless one of them is the Sysadmin account', function(done){
-            let cat = {email: 'x@catalyst-eu.net', fullname: 'X'};
             lwm.__apply_lint_rules.apply(
                 lwm,
                 setup(
                     (a) => {
                         a[2].rows = [
                             {email: 'y@catalyst-eu.net', fullname: 'Catalyst Sysadmin Europe'},
-                            cat
+                            {email: 'x@catalyst-eu.net', fullname: 'X'}
                         ];
                     },
                     (err, data) => {
@@ -123,7 +122,8 @@ describe(require('path').basename(__filename), function(){
                         should.exist(data.rows);
                         data.rows.length.should.equal(1);
                         should.exist(data.rows[0].msg.match(/^No warnings/))
-                        data.rows[0].to.should.equal(lwm.__format_author(cat));
+                        should.exist(data.rows[0].to);
+                        should.exist(data.rows[0].to[0].match(/catalyst/));
                         done();
                     }
                 )
@@ -161,18 +161,25 @@ describe(require('path').basename(__filename), function(){
                 lwm,
                 setup(
                     (a) => {
-                        a[1].total_hours = 1;
+                        a[0] = 221615,
+                        a[1] = {
+                            request_id: 221615,
+                            total_hours: 8.15
+                        };
+                        a[2].rows = [];
                     },
                     (err, data) => {
                         should.not.exist(err);
                         should.exist(data);
                         should.exist(data.rows);
-                        data.rows.length.should.equal(2);
+                        data.rows.length.should.equal(3);
                         should.exist(data.rows[0].warning);
-                        should.exist(data.rows[0].warning.match(/requested/));
-                        should.exist(data.rows[1].wr);
-                        should.exist(data.rows[1].msg);
-                        should.exist(data.rows[1].msg.match(/^1 warning/));
+                        should.exist(data.rows[0].warning.match(/allocated/));
+                        should.exist(data.rows[1].warning);
+                        should.exist(data.rows[1].warning.match(/requested/));
+                        should.exist(data.rows[2].wr);
+                        should.exist(data.rows[2].msg);
+                        should.exist(data.rows[2].msg.match(/^2 warning/));
                         done();
                     }
                 )

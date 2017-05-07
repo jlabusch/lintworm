@@ -9,6 +9,9 @@
     "server": {
         "port": 80
     },
+    "chat_nicks": {
+        "bob@example.com": "bob"
+    },
     "log": {
         "file": "-",
         "level": "info"

@@ -211,9 +211,12 @@ Lintworm.prototype.lint = function(wr, next) {
                         if (err){ return next(err) }
                         this.db.query('lint.relations', lint_parent_sql, [wr], (err, parent_data) => {
                             if (err){ return next(err) }
+                            if (!req_data || !req_data.rows || req_data.rows.length < 1){
+                                throw new Error('Invalid empty request data for WR# ' + wr);
+                            }
                             this.__apply_lint_rules(
                                 wr,
-                                req_data,
+                                req_data.rows[0],
                                 alloc_data,
                                 quote_data,
                                 tag_data,
@@ -257,9 +260,9 @@ Lintworm.prototype.__apply_lint_rules = function(wr, req, alloc, quote, tags, ac
     let rules = require('./lint_rules');
 
     if (rules.unallocated(context)){
-        res.push({warning: 'Unallocated', score: -10});
+        res.push({warning: "There's nobody allocated", score: -10});
     }else if (rules.multiple_allocations(context)){
-        res.push({warning: 'Allocated to multiple people', score: -5});
+        res.push({warning: "It's allocated to multiple people", score: -5});
     }
 
     if (contains_row_data(alloc)){
@@ -281,24 +284,24 @@ Lintworm.prototype.__apply_lint_rules = function(wr, req, alloc, quote, tags, ac
         });
     }else if (rules.exceeds_requested_budget(context)){
         res.push({
-            warning: `Over requested budget by ${req.total_hours - context.sum_quotes.total.quoted} hours`,
+            warning: `It's over the requested budget by ${req.total_hours - context.sum_quotes.total.quoted} hours`,
             score: -20
         });
     }else if (rules.exceeds_approved_budget(context)){
         res.push({
-            warning: `Over approved budget by ${req.total_hours - context.sum_quotes.total.approved} hours`,
+            warning: `It's over the approved budget by ${req.total_hours - context.sum_quotes.total.approved} hours`,
             score: -10
         });
     }else if (rules.requires_parent_budget(context)){
         res.push({
-            info: "Relies on parent WR quotes, but we haven't checked how much time was used by sibling WRs",
+            info: "It relies on parent WR quotes, but we haven't checked how much time was used by sibling WRs",
             score: -5
         });
     }
 
     if (rules.too_many_notes_with_no_timesheets(context)){
         res.push({
-            warning: `${context.our_notes.length} notes from us with no timesheets`,
+            warning: `There are ${context.our_notes.length} notes from us with no timesheets`,
             score: -5
         });
     }
@@ -306,12 +309,12 @@ Lintworm.prototype.__apply_lint_rules = function(wr, req, alloc, quote, tags, ac
     if (context.last_comment && context.last_comment.client){
         if (!context.last_comment.catalyst){
             res.push({
-                warning: 'Client notes with no response from us',
+                warning: 'There are client notes, but no response from us',
                 score: -5
             });
         }else if (rules.being_chased_for_response(context)){
             res.push({
-                warning: 'Client just bumped a forgotten ticket',
+                warning: 'Looks like the client just bumped a forgotten ticket',
                 score: -5
             });
         }
@@ -334,8 +337,9 @@ Lintworm.prototype.__apply_lint_rules = function(wr, req, alloc, quote, tags, ac
     }else{
         res.push({msg: `No warnings for WR# ${wr}`});
     }
-    res[res.length-1].to = author.join(', ');
+    res[res.length-1].to = author;
     res[res.length-1].wr = wr;
+    res[res.length-1].brief = req.brief;
     log.trace(label + wr + ': ' + JSON.stringify(res, null, 2));
     return next(null, {rows: res});
 }

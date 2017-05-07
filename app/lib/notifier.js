@@ -1,4 +1,5 @@
 var log     = require('./log'),
+    config	= require('config'),
     lwm     = require('./lintworm');
 
 'use strict';
@@ -43,6 +44,24 @@ Notifier.prototype.run = function(next){
     });
 }
 
+function to_chat_handle(email){
+    let nicks = config.get('chat_nicks');
+    if (nicks[email]){
+        return nicks[email];
+    }
+    return email;
+}
+
+function choose_greeting(authors){
+    if (!authors || authors.length < 1){
+        return 'help, can someone';
+    }
+    if (authors.length === 1){
+        return to_chat_handle(authors[0]) + ': can you';
+    }
+    return authors.map(to_chat_handle).join(', ') + ': can someone';
+}
+
 function process_update(x, xs, next){
     if (!x){
         return next();
@@ -55,7 +74,7 @@ function process_update(x, xs, next){
         log.info(JSON.stringify(data.rows, null, 2));
         if (data.rows.length > 1){ // then there's something unusual
             let v = data.rows[data.rows.length-1],
-                s = `Hi ${v.to}, can you take a look at WR# ${v.wr}?`;
+                s = `${choose_greeting(v.to)} please take a look at WR# ${v.wr}? (${x.brief})`;
             data.rows.forEach((r) => {
                 if (r.warning){
                     s = s + '\n - ' + r.warning;
