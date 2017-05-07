@@ -72,13 +72,12 @@ function process_update(x, xs, next){
             return next(err);
         }
         log.info(JSON.stringify(data.rows, null, 2));
-        if (data.rows.length > 1){ // then there's something unusual
+        let warnings = data.rows.filter((x) => { return x.warning });
+        if (warnings.length){ // then there's something unusual
             let v = data.rows[data.rows.length-1],
                 s = `${choose_greeting(v.to)} please take a look at WR# ${v.wr}? (${x.brief})`;
-            data.rows.forEach((r) => {
-                if (r.warning){
-                    s = s + '\n - ' + r.warning;
-                }
+            warnings.forEach((r) => {
+                s = s + '\n - ' + r.warning;
             });
             s = s + '\n' + v.msg + '\n';
             log.warn('\n' + s);
