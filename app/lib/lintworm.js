@@ -13,7 +13,7 @@ function tidy(s){
 function Lintworm(){
     this.db = undefined;
     this.latest_update = undefined;
-    this.poll_cache = [];
+    this.poll_cache = []; // FIXME: this whole concept is incomplete and bad.
 }
 
 Lintworm.prototype.init = function(db){
