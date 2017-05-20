@@ -10,13 +10,14 @@
         "port": 80
     },
     "lint": {
-        "quote_leeway": 1
-    },
-    "chat_nicks": {
-        "bob@example.com": "bob"
+        "quote_leeway": 1,
+        "budget_overrun_leeway": 1
     },
     "log": {
         "file": "-",
-        "level": "info"
+        "level": "warn"
+    },
+    "chat_nicks": {
+        "foo@example.com": "@Bob"
     }
 }

@@ -15,7 +15,7 @@ function Lintworm(){
 
     const days = 24*60*60*1000,
         today = new Date().getTime();
-    this.latest_update = new Date(today - 3*days).toISOString();
+    this.latest_update = new Date(today - 1*days).toISOString();
 }
 
 Lintworm.prototype.init = function(db){
