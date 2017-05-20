@@ -26,9 +26,8 @@
     "eslint-plugin-standard": "*",
     "eslint-plugin-promise": "*",
     "eslint-config-standard": "*",
-    "istanbul": "~0.4",
+    "istanbul": "next",
     "mocha": "~3.3",
-    "reactify": "~1.1",
     "should": "~11.2",
     "superagent": "~3.5"
   },

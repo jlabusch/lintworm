@@ -9,12 +9,17 @@ function _L(f){
 }
 
 function Notifier(){
+    this.first_run = true;
 }
 
 Notifier.prototype.start = function(){
     let self = this;
     function next(err){
         let delay = 60*1000;
+        if (self.first_run){
+            self.first_run = false;
+            delay = 5*1000;
+        }
         if (err){
             log.error(_L('interval') + (err.stack || err));
             delay = delay*10;
@@ -30,12 +35,6 @@ Notifier.prototype.run = function(next){
             return next(err);
         }
         if (data && data.rows){
-            let wrs = {};
-            data.rows.filter((r) => {
-                let x = wrs[r.request_id];
-                wrs[r.request_id] = true;
-                return !!x;
-            });
             log.info(_L('run') + `processing ${data.rows.length} updates`);
             process_update(data.rows.shift(), data.rows, next);
         }else{
@@ -66,12 +65,13 @@ function process_update(x, xs, next){
     if (!x){
         return next();
     }
-    log.info(_L('process_update') + 'WR# ' + x.request_id);
+    const label = _L('process_update');
+    log.info(label + 'WR# ' + x.request_id);
     lwm.lint(x.request_id, (err, data) => {
         if (err){
             return next(err);
         }
-        log.info(JSON.stringify(data.rows, null, 2));
+        log.info(label + JSON.stringify(data.rows, null, 2));
         let warnings = data.rows.filter((x) => { return x.warning });
         if (warnings.length){ // then there's something unusual
             let v = data.rows[data.rows.length-1],
@@ -80,7 +80,7 @@ function process_update(x, xs, next){
                 s = s + '\n - ' + r.warning;
             });
             s = s + '\n' + v.msg + '\n';
-            log.warn('\n' + s);
+            log.warn(`\n---------------------------------\n${s}`);
         }
         process.nextTick(() => { process_update(xs.shift(), xs, next); });
     });

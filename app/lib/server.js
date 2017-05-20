@@ -64,17 +64,6 @@ function query_response(label, res, filter, next){
     }
 }
 
-setup('get', '/poll', (req, res, next) => {
-    lwm.poll(
-        query_response(
-            _L('poll'),
-            res,
-            null,
-            next
-        )
-    );
-});
-
 setup('get', '/lint/:wr', (req, res, next) => {
     const wr = parseInt(req.params.wr),
         label = _L('lint');
