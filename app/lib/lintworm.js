@@ -270,7 +270,7 @@ Lintworm.prototype.__apply_lint_rules = function(wr, req, alloc, quote, tags, ac
         alloc.rows.forEach((x) => {
             if (x.email &&
                 x.fullname &&
-                x.email.match(/catalyst/) &&
+                x.email.match(/catalyst(\-eu.net|.net.nz|\-au.net)/) &&
                 x.fullname !== 'Catalyst Sysadmin Europe')
             {
                 author.push(format_author(x));
@@ -372,5 +372,3 @@ Lintworm.prototype.timesheets = function(next){
 }
 
 module.exports = new Lintworm();
-
-
