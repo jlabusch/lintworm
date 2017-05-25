@@ -51,11 +51,11 @@ function sum_quotes(direct, indirect){
             {
             case 'hours':
                 result.wr.quoted += r.quote_amount;
-                if (r.approved_by_id) result.wr.approved += r.quote_amount;
+                if (r.approved_by_id && !r.quote_cancelled_by) result.wr.approved += r.quote_amount;
                 break;
             case 'days':
                 result.wr.quoted += r.quote_amount*8;
-                if (r.approved_by_id) result.wr.approved += r.quote_amount*8;
+                if (r.approved_by_id && !r.quote_cancelled_by) result.wr.approved += r.quote_amount*8;
                 break;
             }
         });

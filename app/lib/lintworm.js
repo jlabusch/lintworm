@@ -70,14 +70,14 @@ const poll_sql =
             ORDER BY ra.date ASC`;
 
 // Returns the list of WRs with updates since this.latest_update
-// (defaulting to a few days ago).
+// (defaulting to lint.rewind_on_startup days ago).
 // Edge triggered rather than level triggered.
 // Limits the future to now+7 days so as to ignore egregious timesheet typos.
 Lintworm.prototype.poll = function(next){
     const days = 24*60*60*1000,
         today = new Date().getTime(),
-        label = _L('poll');
-    let from = this.latest_update,
+        label = _L('poll'),
+        from = this.latest_update,
         to   = new Date(today + 7*days).toISOString();
     log.debug(label + `from ${from} to ${to}`);
 
@@ -140,7 +140,8 @@ const lint_req_sql =
         SELECT  rq.quote_amount,
                 rq.quote_units,
                 rq.approved_by_id,
-                rq.quote_cancelled_by
+                rq.quote_cancelled_by,
+                rq.invoice_no
         FROM request_quote rq
         WHERE rq.request_id=$1
     `,

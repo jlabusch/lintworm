@@ -214,6 +214,31 @@ describe(require('path').basename(__filename), function(){
                 )
             );
         });
+        it('should ignore cancelled quotes', function(done){
+            lwm.__apply_lint_rules.apply(
+                lwm,
+                setup(
+                    (a) => {
+                        a[1].total_hours = quote_leeway+1;
+                        a[3].rows = [
+                            {quote_units: 'hours', quote_amount: 5, approved_by_id: undefined, quote_cancelled_by: 123}
+                        ]
+                    },
+                    (err, data) => {
+                        should.not.exist(err);
+                        should.exist(data);
+                        should.exist(data.rows);
+                        data.rows.length.should.equal(2);
+                        should.exist(data.rows[0].warning);
+                        should.exist(data.rows[0].warning.match(/approved/));
+                        should.exist(data.rows[1].msg);
+                        should.exist(data.rows[1].msg.match(/^1 warning/));
+                        should.exist(data.rows[1].wr);
+                        done();
+                    }
+                )
+            );
+        });
         it('should consider approved quotes', function(done){
             lwm.__apply_lint_rules.apply(
                 lwm,
