@@ -1,7 +1,7 @@
 var config  = require('config'),
     log     = require('./lib/log'),
     server  = require('./lib/server'),
-    notifier= require('./lib/notifier'),
+    notifier= require('./lib/notifier').notifier,
     lwm     = require('./lib/lintworm');
 
 'use strict';
