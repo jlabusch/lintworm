@@ -1,7 +1,7 @@
 var log = require('./log'),
     config = require('config'),
-    quote_leeway = config.get('lint.quote_leeway'),
-    budget_grace = config.get('lint.budget_overrun_leeway');
+    quote_leeway = config.get('lint.hours_before_quote_required'),
+    budget_grace = config.get('lint.acceptable_hours_budget_overrun');
 
 function _L(f){
     return require('path').basename(__filename) + '#' + f + ' - ';
@@ -91,10 +91,16 @@ exports.exceeds_approved_budget = function(context){
     if (contains_row_data(context.quote) && !context.sum_quotes){
         context.sum_quotes = sum_quotes(context.quote.rows);
     }
-    let a = (context.sum_quotes ? context.sum_quotes.total.approved : 0) || quote_leeway,
-        b = context.req.total_hours;
-    log.trace(_L('exceeds_approved_budget') + `${a} - ${b} = ${a-b}`);
-    return !under_warranty(context) && a - b < -budget_grace;
+
+    if (under_warranty(context)){
+        return false;
+    }
+
+    let approved = context.sum_quotes ? context.sum_quotes.total.approved : 0,
+        diff = approved - context.req.total_hours,
+        grace = approved ? budget_grace : quote_leeway;
+    log.trace(_L('exceeds_approved_budget') + `${approved} - ${context.req.total_hours} = ${diff} (grace ${grace})`);
+    return diff + grace < 0;
 }
 
 exports.exceeds_requested_budget = function(context){

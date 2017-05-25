@@ -1,6 +1,7 @@
 var assert  = require('assert'),
     config  = require('config'),
-    quote_leeway = config.get('lint.quote_leeway'),
+    quote_leeway = config.get('lint.hours_before_quote_required'),
+    overrun_leeway = config.get('lint.acceptable_hours_budget_overrun'),
     lwm = require('../lib/lintworm.js'),
     should  = require('should');
 
@@ -236,7 +237,7 @@ describe(require('path').basename(__filename), function(){
                 )
             );
         });
-        it('should respect config.lint.quote_leeway', function(done){
+        it('should respect config.lint.hours_before_quote_required', function(done){
             lwm.__apply_lint_rules.apply(
                 lwm,
                 setup(

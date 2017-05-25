@@ -14,8 +14,8 @@
     },
     "lint": {
         "rewind_on_startup": 0,
-        "quote_leeway": 1,
-        "budget_overrun_leeway": 3
+        "hours_before_quote_required": 1,
+        "acceptable_hours_budget_overrun": 3
     },
     "log": {
         "file": "-",
