@@ -1,5 +1,6 @@
 var log     = require('./log'),
     config	= require('config'),
+    https   = require('https'),
     lwm     = require('./lintworm');
 
 'use strict';
@@ -51,14 +52,46 @@ function to_chat_handle(email){
     return email;
 }
 
-function choose_greeting(authors){
-    if (!authors || authors.length < 1){
-        return 'help, can someone';
+const uri = config.get('rocketchat.hook'),
+    uri_parts = uri ? uri.match(/https:\/\/(.*?)\/(.*)/) : [],
+    options = {
+        hostname: uri_parts[1],
+        port: 443,
+        path: '/' + uri_parts[2],
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    };
+
+function send_to_webhook(msg){
+    const label = _L('send_to_webhook');
+    if (uri){
+        const req = https.request(options, (res) => {
+            if (res.statusCode !== 200){
+                log.error(label + res.statusCode);
+            }else{
+                log.info(label + res.statusCode);
+            }
+        });
+        req.on('error', (e) => {
+            log.error(label + e);
+        });
+        req.write(JSON.stringify({text: msg}));
+        req.end();
     }
-    if (authors.length === 1){
-        return to_chat_handle(authors[0]) + ': can you';
+}
+
+function to_org_abbrev(o){
+    let acronym = o.match(/([A-Z]{3}[A-Z]*)/);
+    if (acronym){
+        return acronym[1];
     }
-    return authors.map(to_chat_handle).join(', ') + ': can someone';
+    let uni = o.match(/University/);
+    if (uni){
+        return o.replace(/ ?University( of )?/g, '');
+    }
+    return o.replace(/^The/, '').match(/(\b[A-Z])/g).join('');
 }
 
 function process_update(x, xs, next){
@@ -72,15 +105,14 @@ function process_update(x, xs, next){
             return next(err);
         }
         log.info(label + JSON.stringify(data.rows, null, 2));
-        let warnings = data.rows.filter((x) => { return x.warning });
+        let warnings = data.rows.filter((x) => { return x.warning }).map((x) => { return x.warning; });
         if (warnings.length){ // then there's something unusual
             let v = data.rows[data.rows.length-1],
-                s = `${choose_greeting(v.to)} please take a look at WR# ${v.wr}?\n(${x.brief}/${x.status})`;
-            warnings.forEach((r) => {
-                s = s + '\n - ' + r.warning;
-            });
-            s = s + '\n' + v.msg + '\n';
-            log.warn(`\n---------------------------------\n${s}`);
+                a = v.to && v.to.length ? `[see ${v.to.map(to_chat_handle).join(', ')}]\n` : '',
+                s = `Can someone please check WR# ${v.wr} for ${to_org_abbrev(v.org)} [${x.status}] ${x.brief}? (${warnings.join(', ')})\n${a}`;
+            log.warn(`\n---------------------------------\n${s}${v.msg}\n`);
+
+            send_to_webhook(s);
         }
         process.nextTick(() => { process_update(xs.shift(), xs, next); });
     });

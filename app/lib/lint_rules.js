@@ -24,7 +24,7 @@ function is_not_sysadmin(x){
 
 exports.multiple_allocations = function(context){
     return contains_row_data(context.alloc) &&
-        context.alloc.rows.filter(is_not_sysadmin).length > 1;
+        context.alloc.rows.filter(is_not_sysadmin).length > 2;
 }
 
 function sum_quotes(direct, indirect){

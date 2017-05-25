@@ -91,7 +91,9 @@ describe(require('path').basename(__filename), function(){
                     (a) => {
                         a[2].rows = [
                             {email: 'a@b.c', fullname: 'A B'},
-                            {email: 'x@catalyst-eu.net', fullname: 'X'}
+                            {email: 'x@catalyst-eu.net', fullname: 'X'},
+                            {email: 'y@catalyst-eu.net', fullname: 'X'},
+                            {email: 'z@catalyst-eu.net', fullname: 'X'}
                         ];
                     },
                     (err, data) => {
@@ -99,7 +101,7 @@ describe(require('path').basename(__filename), function(){
                         should.exist(data);
                         should.exist(data.rows);
                         should.exist(data.rows[0].warning);
-                        data.rows[0].warning.match(/multiple/).should.not.be.null;
+                        data.rows[0].warning.match(/allocated/).should.not.be.null;
                         should.exist(data.rows[1].msg);
                         should.exist(data.rows[1].msg.match(/^1 warning/));
                         done();
@@ -177,7 +179,7 @@ describe(require('path').basename(__filename), function(){
                         should.exist(data.rows[0].warning);
                         should.exist(data.rows[0].warning.match(/allocated/));
                         should.exist(data.rows[1].warning);
-                        should.exist(data.rows[1].warning.match(/requested/));
+                        should.exist(data.rows[1].warning.match(/over budget/));
                         should.exist(data.rows[2].wr);
                         should.exist(data.rows[2].msg);
                         should.exist(data.rows[2].msg.match(/^2 warning/));

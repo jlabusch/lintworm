@@ -6,12 +6,16 @@
         "host": "192.168.0.10",
         "port": 5432
     },
+    "rocketchat": {
+        "hook": undefined
+    },
     "server": {
         "port": 80
     },
     "lint": {
+        "rewind_on_startup": 0,
         "quote_leeway": 1,
-        "budget_overrun_leeway": 1
+        "budget_overrun_leeway": 3
     },
     "log": {
         "file": "-",
