@@ -85,7 +85,6 @@ Lintworm.prototype.poll = function(next){
         .then(
             (data) => {
                 if (data && data.rows && data.rows.length > 0){
-                    this.latest_update = data.rows[data.rows.length-1].updated_on;
                     let wrs = {};
                     data.rows = data.rows.filter((x) => {
                         let found = wrs[x.request_id];
@@ -230,6 +229,19 @@ function format_author(row){
 
 Lintworm.prototype.__format_author = format_author;
 
+Lintworm.prototype.__mark_latest_update = function(u){
+    if (u && u.rows && u.rows.length > 0){
+        let newest = new Date(this.latest_update);
+        u.rows.forEach((r) => {
+            let d = new Date(r.date);
+            if (d > newest){
+                newest = d;
+            }
+        });
+        this.latest_update = newest.toISOString();
+    }
+}
+
 Lintworm.prototype.__apply_lint_rules = function(wr, req, alloc, quote, tags, activity, parents, next){
     let res = [],
         author = [],
@@ -242,6 +254,8 @@ Lintworm.prototype.__apply_lint_rules = function(wr, req, alloc, quote, tags, ac
             activity: activity,
             parents: parents
         };
+
+    this.__mark_latest_update(activity);
 
     let rules = require('./lint_rules');
 
