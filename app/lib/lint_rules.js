@@ -1,5 +1,6 @@
 var log = require('./log'),
     config = require('config'),
+    max_allocations = config.get('lint.max_allocations'),
     quote_leeway = config.get('lint.hours_before_quote_required'),
     budget_grace = config.get('lint.acceptable_hours_budget_overrun');
 
@@ -24,7 +25,7 @@ function is_not_sysadmin(x){
 
 exports.multiple_allocations = function(context){
     return contains_row_data(context.alloc) &&
-        context.alloc.rows.filter(is_not_sysadmin).length > 2;
+        context.alloc.rows.filter(is_not_sysadmin).length > max_allocations;
 }
 
 function sum_quotes(direct, indirect){
