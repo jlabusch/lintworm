@@ -32,9 +32,9 @@ exports.send = function(msg){
     if (uri){
         const req = https.request(options, (res) => {
             if (res.statusCode !== 200){
-                log.error(label + res.statusCode);
+                log.error(label + msg + ' => ' + res.statusCode);
             }else{
-                log.info(label + res.statusCode);
+                log.trace(label + msg + ' => ' + res.statusCode);
             }
         });
         req.on('error', (e) => {
@@ -42,6 +42,8 @@ exports.send = function(msg){
         });
         req.write(JSON.stringify({text: msg}));
         req.end();
+    }else{
+        log.trace(label + msg + ' => not sent, rocketchat.hook not set');
     }
     return true;
 }

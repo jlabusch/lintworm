@@ -19,7 +19,7 @@ Notifier.prototype.start = function(){
         let delay = 60*1000;
         if (self.first_run){
             self.first_run = false;
-            delay = 5*1000;
+            delay = 10*1000;
         }
         if (err){
             log.error(_L('interval') + (err.stack || err));
@@ -36,19 +36,21 @@ Notifier.prototype.start = function(){
 Notifier.prototype.check_timesheets = function(){
     let label = _L('check_timesheets');
     this.lwm.timesheets((err, data) => {
-        log.warn(label + JSON.stringify(data, null, 2));
         if (err){
             log.error(label + (err.stack || err));
             return;
         }
         if (data && data.rows && data.rows.length > 0){
-            this.rocket.send(
-                "```" +
-                data.rows.map((r) => {
-                    return r.fullname + ' '.repeat(30 - r.fullname.length) + (r.worked|0) + '%';
-                }).join('\n')
-                + "```"
-            );
+            let too_low = data.rows.filter((r) => { return r.worked < 70; });
+            if (too_low.length > 0){
+                let msg = "Timesheets to chase: \n```" +
+                            too_low.map((r) => {
+                                return r.fullname + ' '.repeat(30 - r.fullname.length) + (r.worked|0) + '%';
+                            }).join('\n')
+                            + "```\n"
+                log.warn(`${msg}---------------------------------\n`);
+                this.rocket.send(msg);
+            }
         }
     });
 }
