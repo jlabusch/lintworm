@@ -112,7 +112,7 @@ Notifier.prototype.process_update = function(x, xs, next){
                 s = `Can someone please check WR# ${v.wr} for ${to_org_abbrev(v.org)} [${x.status}] ${x.brief}? (${warnings.join(', ')})\n${a}`;
             log.warn(`${s}${v.msg}\n---------------------------------\n`);
 
-            this.rocket.send(s);
+            this.rocket.send(s).about(v.wr);
         }
         process.nextTick(() => { this.process_update(xs.shift(), xs, next); });
     });

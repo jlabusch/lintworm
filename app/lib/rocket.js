@@ -10,45 +10,72 @@ function _L(f){
 
 var sent_messages = {};
 
-const cfg_uri = config.get('rocketchat.hook'),
-    uri_parts = cfg_uri ? cfg_uri.match(/https:\/\/(.*?)\/(.*)/) : [],
-    options = {
-        hostname: uri_parts[1],
-        port: 443,
-        path: '/' + uri_parts[2],
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
+// Usage:
+//  - rocket.send(msg).about(key).to(uri).then(fn)
+//  - rocket.send(msg).about(key).to(uri)   // fn is noop
+//  - rocket.send(msg).about(key)           // uri=cfg_uri
+//  - rocket.send(msg)                      // key=msg
+exports.send = function(msg){
+    let key = msg,
+        uri = config.get('rocketchat.hook'),
+        next = function(){};
+    process.nextTick(() => { __send(key, msg, uri, next); });
+    let obj = {
+        about: (id) => {
+            key = id;
+            return obj;
+        },
+        to: (dest) => {
+            uri = dest;
+            return obj;
+        },
+        then: (fn) => {
+            next = fn;
+            return obj;
         }
     };
+    return obj;
+}
 
-exports.send = function(msg, uri){
+function __send(key, msg, uri, next){
     const label = _L('send');
-    if (sent_messages[msg]){
-        log.info(label + `Skipping repeat of ${msg} [last sent ${sent_messages[msg]}]`);
-        return false;
+    if (sent_messages[key]){
+        log.info(label + `Skipping repeat of ${key} [last sent ${sent_messages[key]}]`);
+        next(null, false);
+        return;
     }
-    // Allow one-shot URI changes, e.g. for testing
-    uri = uri !== undefined ? uri : cfg_uri;
-
-    sent_messages[msg] = new Date();
+    sent_messages[key] = new Date();
     if (uri){
-        const req = https.request(options, (res) => {
-            if (res.statusCode !== 200){
-                log.error(label + msg + ' => ' + res.statusCode);
-            }else{
-                log.trace(label + msg + ' => ' + res.statusCode);
-            }
-        });
+        const uri_parts = uri ? uri.match(/https:\/\/(.*?)\/(.*)/) : [],
+            options = {
+                hostname: uri_parts[1],
+                port: 443,
+                path: '/' + uri_parts[2],
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            },
+            req = https.request(options, (res) => {
+                if (res.statusCode !== 200){
+                    let e = label + `[${key}] ${msg} => ${res.statusCode}`;
+                    log.error(e);
+                    next(new Error(e));
+                }else{
+                    log.trace(label + `[${key}] ${msg} => ${res.statusCode}`);
+                    next(null, true);
+                }
+            });
         req.on('error', (e) => {
             log.error(label + e);
+            next(e);
         });
         req.write(JSON.stringify({text: msg}));
         req.end();
     }else{
-        log.trace(label + msg + ' => not sent, rocketchat.hook not set');
+        log.trace(label + `[${key}] ${msg} => not sent, rocketchat.hook not set`);
+        next(null, true);
     }
-    return true;
 }
 
 

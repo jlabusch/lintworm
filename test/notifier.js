@@ -22,9 +22,25 @@ function Rocket(next){
 }
 
 Rocket.prototype.send = function(msg){
-    process.nextTick(() => {
-        this.next && this.next(msg);
-    });
+    let key = msg,
+        uri = null,
+        next = function(){};
+    process.nextTick(() => { this.next && this.next(msg) });
+    let obj = {
+        about: (id) => {
+            key = id;
+            return obj;
+        },
+        to: (dest) => {
+            uri = dest;
+            return obj;
+        },
+        then: (fn) => {
+            next = fn;
+            return obj;
+        }
+    };
+    return obj;
 }
 
 
