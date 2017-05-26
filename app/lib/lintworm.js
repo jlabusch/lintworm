@@ -55,6 +55,7 @@ const poll_sql =
             JOIN usr ru on ru.user_no=r.requester_id
             JOIN organisation o on o.org_code=ru.org_code
             WHERE ra.date > $1 AND ra.date < $2
+                AND r.system_id NOT IN (2881,2657)
                 AND o.org_code in (
                     SELECT o.org_code
                         FROM organisation o
@@ -63,7 +64,7 @@ const poll_sql =
                         JOIN system_usr su ON su.system_id=os.system_id
                         JOIN usr u ON u.user_no=su.user_no
                         WHERE o.org_code NOT IN (37,1098,1185,1137) AND
-                            s.system_id NOT IN (18,164,2881,2657) AND
+                            s.system_id NOT IN (18,164) AND
                             u.user_no > 4000 AND
                             u.email LIKE '%catalyst-eu.net'
                 )
