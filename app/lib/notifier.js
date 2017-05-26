@@ -15,7 +15,7 @@ function Notifier(lintworm, rocket){
 
 Notifier.prototype.start = function(){
     let self = this;
-    function next(err){
+    function sweep_wrs(err){
         let delay = 60*1000;
         if (self.first_run){
             self.first_run = false;
@@ -25,9 +25,32 @@ Notifier.prototype.start = function(){
             log.error(_L('interval') + (err.stack || err));
             delay = delay*10;
         }
-        setTimeout(() => { self.run(next) }, delay);
+        setTimeout(() => { self.run(sweep_wrs) }, delay);
     }
-    next();
+    sweep_wrs();
+
+    setTimeout(() => { this.check_timesheets(); }, 5*1000);
+    setInterval(() => { this.check_timesheets() }, 24*60*60*1000);
+}
+
+Notifier.prototype.check_timesheets = function(){
+    let label = _L('check_timesheets');
+    this.lwm.timesheets((err, data) => {
+        log.warn(label + JSON.stringify(data, null, 2));
+        if (err){
+            log.error(label + (err.stack || err));
+            return;
+        }
+        if (data && data.rows && data.rows.length > 0){
+            this.rocket.send(
+                "```" +
+                data.rows.map((r) => {
+                    return r.fullname + ' '.repeat(30 - r.fullname.length) + (r.worked|0) + '%';
+                }).join('\n')
+                + "```"
+            );
+        }
+    });
 }
 
 Notifier.prototype.run = function(next){
@@ -83,7 +106,7 @@ Notifier.prototype.process_update = function(x, xs, next){
             let v = data.rows[data.rows.length-1],
                 a = v.to && v.to.length ? `[see ${v.to.map(to_chat_handle).join(', ')}]\n` : '',
                 s = `Can someone please check WR# ${v.wr} for ${to_org_abbrev(v.org)} [${x.status}] ${x.brief}? (${warnings.join(', ')})\n${a}`;
-            log.warn(`\n---------------------------------\n${s}${v.msg}\n`);
+            log.warn(`${s}${v.msg}\n---------------------------------\n`);
 
             this.rocket.send(s);
         }

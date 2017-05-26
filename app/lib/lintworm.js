@@ -302,7 +302,7 @@ Lintworm.prototype.__apply_lint_rules = function(wr, req, alloc, quote, tags, ac
 
     if (rules.too_many_notes_with_no_timesheets(context)){
         res.push({
-            warning: `There are ${context.our_notes.length} notes from us with no timesheets`,
+            warning: `${context.our_notes.length} notes from us with no timesheets`,
             score: -5
         });
     }
@@ -310,7 +310,7 @@ Lintworm.prototype.__apply_lint_rules = function(wr, req, alloc, quote, tags, ac
     if (context.last_comment && context.last_comment.client){
         if (!context.last_comment.catalyst){
             res.push({
-                warning: 'client notes, but no response from us',
+                warning: 'client notes with no response from us',
                 score: -5
             });
         }else if (rules.being_chased_for_response(context)){
@@ -346,6 +346,29 @@ Lintworm.prototype.__apply_lint_rules = function(wr, req, alloc, quote, tags, ac
     // const label = _L('__apply_lint_rules');
     // log.trace(label + wr + ': ' + JSON.stringify(res, null, 2));
     return next(null, {rows: res});
+}
+
+const timesheet_sql = tidy`
+        SELECT u.fullname,
+               u.email,
+               SUM(rt.work_quantity)/40*100 AS worked
+        FROM request_timesheet rt
+        JOIN usr u ON u.user_no=rt.work_by_id
+        WHERE u.email LIKE '%catalyst-eu.net' AND
+              rt.work_on >= current_date - interval '10 days' AND
+              rt.work_on < current_date - interval '3 days'
+        GROUP by u.fullname,u.email
+        ORDER by u.fullname`;
+
+Lintworm.prototype.timesheets = function(next){
+    let label = _L('timesheets');
+    log.debug(label);
+
+    this.db.query("timesheets", timesheet_sql)
+        .then(
+            (data) => { next(null, data); },
+            (err) => { next(err); }
+        );
 }
 
 module.exports = new Lintworm();
