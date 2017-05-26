@@ -29,7 +29,9 @@ Notifier.prototype.start = function(){
     }
     sweep_wrs();
 
-    setTimeout(() => { this.check_timesheets(); }, 5*1000);
+    if (config.get('lint.check_timesheets_on_startup')){
+        setTimeout(() => { this.check_timesheets(); }, 5*1000);
+    }
     setInterval(() => { this.check_timesheets() }, 24*60*60*1000);
 }
 
