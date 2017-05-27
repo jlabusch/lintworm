@@ -1,6 +1,6 @@
 var assert  = require('assert'),
     sa      = require('superagent'),
-    Notifier= require('../lib/notifier').type,
+    Notifier= require('../lib/notifier/linting').type,
     should  = require('should');
 
 function Lintworm(state){

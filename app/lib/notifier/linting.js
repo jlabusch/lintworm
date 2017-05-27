@@ -1,4 +1,4 @@
-var log     = require('./log'),
+var log     = require('../log'),
     config	= require('config');
 
 'use strict';
@@ -7,13 +7,16 @@ function _L(f){
     return require('path').basename(__filename) + '#' + f + ' - ';
 }
 
-function Notifier(lintworm, rocket){
+function Linting(lintworm, rocket){
     this.first_run = true;
-    this.lwm = lintworm || require('./lintworm');
-    this.rocket = rocket || require('./rocket');
+    this.lwm = lintworm;
+    this.rocket = rocket;
 }
 
-Notifier.prototype.start = function(){
+Linting.prototype.start = function(lintworm, rocket){
+    this.lwm = lintworm || this.lwm;
+    this.rocket = rocket || this.rocket;
+
     let self = this;
     function sweep_wrs(err){
         let delay = 60*1000;
@@ -28,36 +31,9 @@ Notifier.prototype.start = function(){
         setTimeout(() => { self.run(sweep_wrs) }, delay);
     }
     sweep_wrs();
-
-    if (config.get('lint.check_timesheets_on_startup')){
-        setTimeout(() => { this.check_timesheets(); }, 5*1000);
-    }
-    setInterval(() => { this.check_timesheets() }, 24*60*60*1000);
 }
 
-Notifier.prototype.check_timesheets = function(){
-    let label = _L('check_timesheets');
-    this.lwm.timesheets((err, data) => {
-        if (err){
-            log.error(label + (err.stack || err));
-            return;
-        }
-        if (data && data.rows && data.rows.length > 0){
-            let too_low = data.rows.filter((r) => { return r.worked < 70; });
-            if (too_low.length > 0){
-                let msg = "Timesheets to chase: \n```" +
-                            too_low.map((r) => {
-                                return r.fullname + ' '.repeat(30 - r.fullname.length) + (r.worked|0) + '%';
-                            }).join('\n')
-                            + "```\n"
-                log.warn(`${msg}---------------------------------\n`);
-                this.rocket.send(msg);
-            }
-        }
-    });
-}
-
-Notifier.prototype.run = function(next){
+Linting.prototype.run = function(next){
     this.lwm.poll((err, data) => {
         if (err){
             next && next(err);
@@ -72,27 +48,7 @@ Notifier.prototype.run = function(next){
     });
 }
 
-function to_chat_handle(email){
-    let nicks = config.get('chat_nicks');
-    if (nicks[email]){
-        return nicks[email];
-    }
-    return email;
-}
-
-function to_org_abbrev(o){
-    let acronym = o.match(/([A-Z]{3}[A-Z]*)/);
-    if (acronym){
-        return acronym[1];
-    }
-    let uni = o.match(/University/);
-    if (uni){
-        return o.replace(/ ?University( of )?/g, '');
-    }
-    return o.replace(/^The/, '').match(/(\b[A-Z])/g).join('');
-}
-
-Notifier.prototype.process_update = function(x, xs, next){
+Linting.prototype.process_update = function(x, xs, next){
     if (!x){
         next && next();
         return;
@@ -118,9 +74,28 @@ Notifier.prototype.process_update = function(x, xs, next){
     });
 }
 
-module.exports = {
-    notifier: new Notifier(),
-    type: Notifier
+function to_chat_handle(email){
+    let nicks = config.get('chat_nicks');
+    if (nicks[email]){
+        return nicks[email];
+    }
+    return email;
 }
 
+function to_org_abbrev(o){
+    let acronym = o.match(/([A-Z]{3}[A-Z]*)/);
+    if (acronym){
+        return acronym[1];
+    }
+    let uni = o.match(/University/);
+    if (uni){
+        return o.replace(/ ?University( of )?/g, '');
+    }
+    return o.replace(/^The/, '').match(/(\b[A-Z])/g).join('');
+}
+
+module.exports = {
+    type: Linting,
+    instance: new Linting()
+};
 
