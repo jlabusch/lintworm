@@ -1,4 +1,5 @@
 var log = require('./log'),
+    our_email_domain = require('./our_email_domain'),
     config = require('config');
 
 'use strict'
@@ -13,6 +14,7 @@ function tidy(s){
 
 function Lintworm(){
     this.db = undefined;
+    this.hooks = {};
 
     const days = 24*60*60*1000,
         today = new Date().getTime();
@@ -21,6 +23,16 @@ function Lintworm(){
 
 Lintworm.prototype.init = function(db){
     this.db = db;
+}
+
+Lintworm.prototype.add_hook = function(key, fn){
+    let arr = this.hooks[key];
+    if (!arr){
+        arr = [];
+    }
+    arr.push(fn);
+    this.hooks[key] = arr;
+    return arr.length;
 }
 
 // FIXME: shouldn't use both > and < date comparisons (use >=)
@@ -78,11 +90,10 @@ Lintworm.prototype.poll = function(next){
     const days = 24*60*60*1000,
         today = new Date().getTime(),
         label = _L('poll'),
-        from = this.latest_update,
         to   = new Date(today + 7*days).toISOString();
-    log.debug(label + `from ${from} to ${to}`);
+    log.debug(label + `from ${this.latest_update} to ${to}`);
 
-    this.db.query("poll", poll_sql, [from, to])
+    this.db.query("poll", poll_sql, [this.latest_update, to])
         .then(
             (data) => {
                 if (data && data.rows && data.rows.length > 0){
@@ -154,9 +165,10 @@ const lint_req_sql =
         WHERE r.request_id=$1
     `,
     lint_activity_sql = tidy`
-        SELECT ra.source,u.fullname,u.email,ra.date
+        SELECT (SELECT ra.date > $2) AS fresh,ra.source,u.fullname,u.email,ra.date,ra.note,lc.lookup_desc as status
         FROM request_activity ra
-        JOIN usr u on u.user_no=ra.worker_id
+        JOIN usr u ON u.user_no=ra.worker_id
+        LEFT JOIN lookup_code lc ON lc.lookup_code=ra.note AND lc.source_field='status_code'
         WHERE ra.request_id=$1
         ORDER BY ra.date ASC
     `,
@@ -202,23 +214,34 @@ Lintworm.prototype.lint = async function(wr, next) {
     let alloc_data      = await this.db.query('lint.alloc',     lint_alloc_sql,     [wr]).catch((e) => { err = e }),
         quote_data      = await this.db.query('lint.quotes',    lint_quote_sql,     [wr]).catch((e) => { err = e }),
         tag_data        = await this.db.query('lint.tags',      lint_tag_sql,       [wr]).catch((e) => { err = e }),
-        activity_data   = await this.db.query('lint.activity',  lint_activity_sql,  [wr]).catch((e) => { err = e }),
+        activity_data   = await this.db.query('lint.activity',  lint_activity_sql,  [wr, this.latest_update]).catch((e) => { err = e }),
         parent_data     = await this.db.query('lint.relations', lint_parent_sql,    [wr]).catch((e) => { err = e });
 
     if (err){
         return next(err);
     }
 
-    this.__apply_lint_rules(
-        wr,
-        req_data.rows[0],
-        alloc_data,
-        quote_data,
-        tag_data,
-        activity_data,
-        parent_data,
-        next
-    );
+    let context = {
+        wr: wr,
+        req: req_data.rows[0],
+        alloc: alloc_data,
+        quote: quote_data,
+        tags: tag_data,
+        activity: activity_data,
+        parents: parent_data
+    };
+
+    process.nextTick(() => {
+        ['lint.activity'].forEach((key) => {
+            if (this.hooks[key]){
+                this.hooks[key].forEach((fn) => {
+                    fn(context);
+                });
+            }
+        });
+    });
+
+    this.__apply_lint_rules(context, next);
 }
 
 function contains_row_data(x){
@@ -228,8 +251,6 @@ function contains_row_data(x){
 function format_author(row){
     return row.email;
 }
-
-Lintworm.prototype.__format_author = format_author;
 
 Lintworm.prototype.__mark_latest_update = function(u){
     if (u && u.rows && u.rows.length > 0){
@@ -244,20 +265,11 @@ Lintworm.prototype.__mark_latest_update = function(u){
     }
 }
 
-Lintworm.prototype.__apply_lint_rules = function(wr, req, alloc, quote, tags, activity, parents, next){
+Lintworm.prototype.__apply_lint_rules = function(context, next){
     let res = [],
-        author = [],
-        context = {
-            wr: wr,
-            req: req,
-            alloc: alloc,
-            quote: quote,
-            tags: tags,
-            activity: activity,
-            parents: parents
-        };
+        author = [];
 
-    this.__mark_latest_update(activity);
+    this.__mark_latest_update(context.activity);
 
     let rules = require('./lint_rules');
 
@@ -267,11 +279,11 @@ Lintworm.prototype.__apply_lint_rules = function(wr, req, alloc, quote, tags, ac
         res.push({warning: "over-allocated", score: -5});
     }
 
-    if (contains_row_data(alloc)){
-        alloc.rows.forEach((x) => {
+    if (contains_row_data(context.alloc)){
+        context.alloc.rows.forEach((x) => {
             if (x.email &&
                 x.fullname &&
-                x.email.match(/catalyst(\-eu.net|.net.nz|\-au.net)/) &&
+                our_email_domain(x.email) &&
                 x.fullname !== 'Catalyst Sysadmin Europe')
             {
                 author.push(format_author(x));
@@ -286,12 +298,12 @@ Lintworm.prototype.__apply_lint_rules = function(wr, req, alloc, quote, tags, ac
         });
     }else if (rules.exceeds_requested_budget(context)){
         res.push({
-            warning: `over budget by ${req.total_hours - context.sum_quotes.total.quoted}h`,
+            warning: `over budget by ${context.req.total_hours - context.sum_quotes.total.quoted}h`,
             score: -20
         });
     }else if (rules.exceeds_approved_budget(context)){
         res.push({
-            warning: `needs another ${req.total_hours - context.sum_quotes.total.approved}h approved`,
+            warning: `needs another ${context.req.total_hours - context.sum_quotes.total.approved}h approved`,
             score: -10
         });
     }else if (rules.requires_parent_budget(context)){
@@ -337,12 +349,12 @@ Lintworm.prototype.__apply_lint_rules = function(wr, req, alloc, quote, tags, ac
             msg: `${num_warnings} warning${num_warnings === 1 ? '' : 's'}, final score ${score}`
         });
     }else{
-        res.push({msg: `No warnings for WR# ${wr}`});
+        res.push({msg: `No warnings for WR# ${context.wr}`});
     }
     res[res.length-1].to = author;
-    res[res.length-1].wr = wr;
-    res[res.length-1].org = req.org;
-    res[res.length-1].brief = req.brief;
+    res[res.length-1].wr = context.wr;
+    res[res.length-1].org = context.req.org;
+    res[res.length-1].brief = context.req.brief;
 
     // const label = _L('__apply_lint_rules');
     // log.trace(label + wr + ': ' + JSON.stringify(res, null, 2));
@@ -361,10 +373,7 @@ const timesheet_sql = tidy`
         GROUP by u.fullname,u.email
         ORDER by u.fullname`;
 
-Lintworm.prototype.timesheets = function(next){
-    let label = _L('timesheets');
-    log.debug(label);
-
+Lintworm.prototype.check_timesheets = function(next){
     this.db.query("timesheets", timesheet_sql)
         .then(
             (data) => { next(null, data); },

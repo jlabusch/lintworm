@@ -1,5 +1,6 @@
 var log     = require('../log'),
-    config	= require('config');
+    config	= require('config'),
+    webhook = config.get('rocketchat.timesheet');
 
 'use strict';
 
@@ -7,24 +8,21 @@ function _L(f){
     return require('path').basename(__filename) + '#' + f + ' - ';
 }
 
-function TimesheetChecker(lintworm, rocket){
-    this.lwm = lintworm;
-    this.rocket = rocket;
+function TimesheetChecker(refs){
+    this.lwm = refs.lwm;
+    this.rocket = refs.rocket;
 }
 
-TimesheetChecker.prototype.start = function(lintworm, rocket){
-    this.lwm = lintworm || this.lwm;
-    this.rocket = rocket || this.rocket;
-
-    if (config.get('lint.check_timesheets_on_startup')){
+TimesheetChecker.prototype.start = function(){
+    if (config.get('timesheets.check_on_startup')){
         setTimeout(() => { this.run() }, 5*1000);
     }
-    setInterval(() => { this.run() }, 24*60*60*1000);
+    setInterval(() => { this.run() }, 1*60*60*1000);
 }
 
 TimesheetChecker.prototype.run = function(){
     let label = _L('run');
-    this.lwm.timesheets((err, data) => {
+    this.lwm.check_timesheets((err, data) => {
         if (err){
             log.error(label + (err.stack || err));
             return;
@@ -38,14 +36,11 @@ TimesheetChecker.prototype.run = function(){
                             }).join('\n')
                             + "```\n"
                 log.warn(`${msg}---------------------------------\n`);
-                this.rocket.send(msg);
+                this.rocket.send(msg).to(webhook);
             }
         }
     });
 }
 
-module.exports = {
-    type: TimesheetChecker,
-    instance: new TimesheetChecker()
-};
+module.exports = TimesheetChecker;
 

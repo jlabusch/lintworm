@@ -1,6 +1,5 @@
 var assert  = require('assert'),
     sa      = require('superagent'),
-    Notifier= require('../lib/notifier/linting').type,
     should  = require('should');
 
 function Lintworm(state){
@@ -10,6 +9,12 @@ function Lintworm(state){
 Lintworm.prototype.poll = function(next){
     process.nextTick(() => {
         next && next(this.state.poll.err, this.state.poll.data);
+    });
+}
+
+Lintworm.prototype.check_timesheets = function(next){
+    process.nextTick(() => {
+        next && next(this.state.timesheets.err, this.state.timesheets.data);
     });
 }
 
@@ -45,7 +50,26 @@ Rocket.prototype.send = function(msg){
 
 
 describe(require('path').basename(__filename), function(){
-    describe('run', function(){
+    describe('timesheets', function(){
+        let type = require('../lib/notifier/timesheets');
+        it('should flag < 70%', function(done){
+            let lintworm = new Lintworm({
+                timesheets: {
+                    err: null,
+                    data: { rows: [{worked: 69, fullname: 'Bob'}] }
+                }
+            });
+            let rocket = new Rocket(msg => {
+                should.exist(msg);
+                should.exist(msg.match(/Bob\s+69%/));
+                done();
+            });
+            let notifier = new type({lwm: lintworm, rocket: rocket});
+            notifier.run();
+        });
+    });
+    describe('linting', function(){
+        let type = require('../lib/notifier/linting');
         it('should poll', function(done){
             let lintworm = new Lintworm({
                 poll: {
@@ -55,7 +79,7 @@ describe(require('path').basename(__filename), function(){
             });
             let tried_to_send = null;
             let rocket = new Rocket(msg => { tried_to_send = msg; });
-            let notifier = new Notifier(lintworm, rocket);
+            let notifier = new type({lwm: lintworm, rocket: rocket});
             notifier.run(function(err){
                 should.not.exist(err);
                 (tried_to_send === null).should.equal(true);
@@ -89,7 +113,7 @@ describe(require('path').basename(__filename), function(){
                 should.exist(msg.match(/hello world/));
                 done();
             });
-            let notifier = new Notifier(lintworm, rocket);
+            let notifier = new type({lwm: lintworm, rocket: rocket});
             notifier.run(function(){});
         });
     });

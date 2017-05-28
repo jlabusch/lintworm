@@ -1,5 +1,7 @@
 var log     = require('../log'),
-    config	= require('config');
+    config	= require('config'),
+    format  = require('../rocket').format,
+    webhook = config.get('rocketchat.lint');
 
 'use strict';
 
@@ -7,16 +9,13 @@ function _L(f){
     return require('path').basename(__filename) + '#' + f + ' - ';
 }
 
-function Linting(lintworm, rocket){
+function Linting(refs){
     this.first_run = true;
-    this.lwm = lintworm;
-    this.rocket = rocket;
+    this.lwm = refs.lwm;
+    this.rocket = refs.rocket;
 }
 
-Linting.prototype.start = function(lintworm, rocket){
-    this.lwm = lintworm || this.lwm;
-    this.rocket = rocket || this.rocket;
-
+Linting.prototype.start = function(){
     let self = this;
     function sweep_wrs(err){
         let delay = 60*1000;
@@ -64,11 +63,11 @@ Linting.prototype.process_update = function(x, xs, next){
         let warnings = data.rows.filter((r) => { return r.warning }).map((r) => { return r.warning; });
         if (warnings.length){ // then there's something unusual
             let v = data.rows[data.rows.length-1],
-                a = v.to && v.to.length ? `[see ${v.to.map(to_chat_handle).join(', ')}]\n` : '',
-                s = `Can someone please check WR# ${v.wr} for ${to_org_abbrev(v.org)} [${x.status}] ${x.brief}? (${warnings.join(', ')})\n${a}`;
+                a = v.to && v.to.length ? ` - see ${v.to.map(to_chat_handle).join(', ')}` : '',
+                s = `We need to check ${format.wr(v.wr)} for ${format.org(v.org)} ${format.status(x.status)} ${format.brief(x.brief)} _(${warnings.join(', ')}${a})_\n`;
             log.warn(`${s}${v.msg}\n---------------------------------\n`);
 
-            this.rocket.send(s).about(v.wr);
+            this.rocket.send(s).about(v.wr).to(webhook);
         }
         process.nextTick(() => { this.process_update(xs.shift(), xs, next); });
     });
@@ -82,20 +81,5 @@ function to_chat_handle(email){
     return email;
 }
 
-function to_org_abbrev(o){
-    let acronym = o.match(/([A-Z]{3}[A-Z]*)/);
-    if (acronym){
-        return acronym[1];
-    }
-    let uni = o.match(/University/);
-    if (uni){
-        return o.replace(/ ?University( of )?/g, '');
-    }
-    return o.replace(/^The/, '').match(/(\b[A-Z])/g).join('');
-}
-
-module.exports = {
-    type: Linting,
-    instance: new Linting()
-};
+module.exports = Linting;
 

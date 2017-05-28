@@ -1,5 +1,6 @@
 var log = require('./log'),
     config = require('config'),
+    our_email_domain = require('./our_email_domain'),
     max_allocations = config.get('lint.max_allocations'),
     quote_leeway = config.get('lint.hours_before_quote_required'),
     budget_grace = config.get('lint.acceptable_hours_budget_overrun');
@@ -137,7 +138,7 @@ function read_notes(context){
 
     context.our_notes = context.activity.rows.filter((r) => {
         if (r.source === 'note' && r.email){
-            if (r.email.match(/catalyst/)){
+            if (our_email_domain(r.email)){
                 context.last_comment.catalyst = r.updated_on;
                 return true;
             }else{

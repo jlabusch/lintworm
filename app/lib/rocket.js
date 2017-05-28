@@ -10,6 +10,25 @@ function _L(f){
 
 var sent_messages = {};
 
+function to_org_abbrev(o){
+    let acronym = o.match(/([A-Z]{3}[A-Z]*)/);
+    if (acronym){
+        return acronym[1];
+    }
+    o = o.replace(/ ?University( of )?/g, '');
+    if (o.match(/\s/)){
+        o = o.replace(/^The/, '').match(/(\b[A-Z])/g).join('');
+    }
+    return o;
+}
+
+exports.format = {
+    wr: (n) => { return `\`WR #${n}\` https://wrms.catalyst.net.nz/${n}` },
+    org: to_org_abbrev,
+    status: (s) => { return `\`${s}\`` },
+    brief: (b) => { return `*${b.length > 45 ? b.slice(0,42) + '...' : b}*` }
+};
+
 // Usage:
 //  - rocket.send(msg).about(key).to(uri).then(fn)
 //  - rocket.send(msg).about(key).to(uri)   // fn is noop
@@ -17,7 +36,7 @@ var sent_messages = {};
 //  - rocket.send(msg)                      // key=msg
 exports.send = function(msg){
     let key = msg,
-        uri = config.get('rocketchat.hook'),
+        uri = config.get('rocketchat.lint'),
         next = function(){};
     process.nextTick(() => { __send(key, msg, uri, next); });
     let obj = {

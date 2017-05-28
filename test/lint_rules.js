@@ -6,23 +6,25 @@ var assert  = require('assert'),
     should  = require('should');
 
 function setup(pre, post){
-    let a = [
-        1234,
-        {request_id: 1234, total_hours: 0, status: 'New Request'}, // 1. req
-        {rows: [{email: 'a@b.c', fullname: 'A B'}]}, // 2. alloc
-        {rows: []}, // 3. quote
-        {rows: []}, // 4. tags
-        {rows: []}, // 5. activity
-        {rows: []}, // 6. parents
+    let context = {
+        wr: 1234,
+        req: {request_id: 1234, total_hours: 0, status: 'New Request'},
+        alloc: {rows: [{email: 'a@b.c', fullname: 'A B'}]},
+        quote: {rows: []},
+        tags: {rows: []},
+        activity: {rows: []},
+        parents: {rows: []}
+    };
+    pre(context);
+    return [
+        context,
+        function(err, data){
+            data.rows.forEach((r) => {
+                console.log('\t> ' + (r.warning || r.info || r.msg));
+            });
+            return post(err, data)
+        }
     ];
-    pre(a);
-    a.push(function(err, data){
-        data.rows.forEach((r) => {
-            console.log('\t> ' + (r.warning || r.info || r.msg));
-        });
-        return post(err, data)
-    });
-    return a;
 }
 
 describe(require('path').basename(__filename), function(){
@@ -31,7 +33,7 @@ describe(require('path').basename(__filename), function(){
             lwm.__apply_lint_rules.apply(
                 lwm,
                 setup(
-                    (a) => {
+                    (c) => {
                     },
                     (err, data) => {
                         should.not.exist(err);
@@ -51,9 +53,9 @@ describe(require('path').basename(__filename), function(){
             lwm.__apply_lint_rules.apply(
                 lwm,
                 setup(
-                    (a) => {
-                        a[1].status = 'Finished';
-                        a[2].rows = [];
+                    (c) => {
+                        c.req.status = 'Finished';
+                        c.alloc.rows = [];
                     },
                     (err, data) => {
                         should.not.exist(err);
@@ -70,8 +72,8 @@ describe(require('path').basename(__filename), function(){
             lwm.__apply_lint_rules.apply(
                 lwm,
                 setup(
-                    (a) => {
-                        a[2].rows = [];
+                    (c) => {
+                        c.alloc.rows = [];
                     },
                     (err, data) => {
                         should.not.exist(err);
@@ -89,8 +91,8 @@ describe(require('path').basename(__filename), function(){
             lwm.__apply_lint_rules.apply(
                 lwm,
                 setup(
-                    (a) => {
-                        a[2].rows = [
+                    (c) => {
+                        c.alloc.rows = [
                             {email: 'a@b.c', fullname: 'A B'},
                             {email: 'x@catalyst-eu.net', fullname: 'X'},
                             {email: 'y@catalyst-eu.net', fullname: 'X'},
@@ -114,8 +116,8 @@ describe(require('path').basename(__filename), function(){
             lwm.__apply_lint_rules.apply(
                 lwm,
                 setup(
-                    (a) => {
-                        a[2].rows = [
+                    (c) => {
+                        c.alloc.rows = [
                             {email: 'y@catalyst-eu.net', fullname: 'Catalyst Sysadmin Europe'},
                             {email: 'x@catalyst-eu.net', fullname: 'X'}
                         ];
@@ -139,9 +141,9 @@ describe(require('path').basename(__filename), function(){
             lwm.__apply_lint_rules.apply(
                 lwm,
                 setup(
-                    (a) => {
-                        a[1].total_hours = quote_leeway + 1;
-                        a[4].rows = [
+                    (c) => {
+                        c.req.total_hours = quote_leeway + 1;
+                        c.tags.rows = [
                             {tag_description: 'A'},
                             {tag_description: 'Warranty'},
                             {tag_description: 'C'}
@@ -164,13 +166,13 @@ describe(require('path').basename(__filename), function(){
             lwm.__apply_lint_rules.apply(
                 lwm,
                 setup(
-                    (a) => {
-                        a[0] = 221615,
-                        a[1] = {
+                    (c) => {
+                        c.wr = 221615,
+                        c.req = {
                             request_id: 221615,
                             total_hours: quote_leeway+5
                         };
-                        a[2].rows = [];
+                        c.alloc.rows = [];
                     },
                     (err, data) => {
                         should.not.exist(err);
@@ -193,9 +195,9 @@ describe(require('path').basename(__filename), function(){
             lwm.__apply_lint_rules.apply(
                 lwm,
                 setup(
-                    (a) => {
-                        a[1].total_hours = quote_leeway+1;
-                        a[3].rows = [
+                    (c) => {
+                        c.req.total_hours = quote_leeway+1;
+                        c.quote.rows = [
                             {quote_units: 'hours', quote_amount: 5, approved_by_id: undefined}
                         ]
                     },
@@ -218,9 +220,9 @@ describe(require('path').basename(__filename), function(){
             lwm.__apply_lint_rules.apply(
                 lwm,
                 setup(
-                    (a) => {
-                        a[1].total_hours = quote_leeway+1;
-                        a[3].rows = [
+                    (c) => {
+                        c.req.total_hours = quote_leeway+1;
+                        c.quote.rows = [
                             {quote_units: 'hours', quote_amount: 5, approved_by_id: undefined, quote_cancelled_by: 123}
                         ]
                     },
@@ -243,9 +245,9 @@ describe(require('path').basename(__filename), function(){
             lwm.__apply_lint_rules.apply(
                 lwm,
                 setup(
-                    (a) => {
-                        a[1].total_hours = quote_leeway+1;
-                        a[3].rows = [
+                    (c) => {
+                        c.req.total_hours = quote_leeway+1;
+                        c.quote.rows = [
                             {quote_units: 'hours', quote_amount: 5, approved_by_id: 1}
                         ]
                     },
@@ -266,9 +268,9 @@ describe(require('path').basename(__filename), function(){
             lwm.__apply_lint_rules.apply(
                 lwm,
                 setup(
-                    (a) => {
-                        a[1].total_hours = quote_leeway;
-                        a[3].rows = [];
+                    (c) => {
+                        c.req.total_hours = quote_leeway;
+                        c.quote.rows = [];
                     },
                     (err, data) => {
                         should.not.exist(err);
@@ -290,9 +292,9 @@ describe(require('path').basename(__filename), function(){
             lwm.__apply_lint_rules.apply(
                 lwm,
                 setup(
-                    (a) => {
-                        a[1].total_hours = 0;
-                        a[5].rows = [
+                    (c) => {
+                        c.req.total_hours = 0;
+                        c.activity.rows = [
                             {source: 'note', email: 'a@b.c', updated_on: today},
                             {source: 'note', email: 'me@catalyst-eu.net', updated_on: today},
                             {source: 'note', email: 'a@b.c', updated_on: today},
@@ -320,9 +322,9 @@ describe(require('path').basename(__filename), function(){
             lwm.__apply_lint_rules.apply(
                 lwm,
                 setup(
-                    (a) => {
-                        a[1].total_hours = 0;
-                        a[5].rows = [
+                    (c) => {
+                        c.req.total_hours = 0;
+                        c.activity.rows = [
                             {source: 'note', email: 'a@b.c', updated_on: last_week},
                             {source: 'note', email: 'me@catalyst-eu.net', updated_on: last_week},
                             {source: 'note', email: 'a@b.c', updated_on: today},

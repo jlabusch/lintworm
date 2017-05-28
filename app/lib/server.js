@@ -64,6 +64,12 @@ function query_response(label, res, filter, next){
     }
 }
 
+setup('get', '/check_timesheets', (req, res, next) => {
+    require('./notifier').notifier.run('timesheets');
+    res.json({OK: true});
+    next(false);
+});
+
 setup('get', '/lint/:wr', (req, res, next) => {
     const wr = parseInt(req.params.wr),
         label = _L('lint');
