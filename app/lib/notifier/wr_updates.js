@@ -59,6 +59,14 @@ Updater.prototype.run = function(context){
 
     let msg = undefined;
 
+    if (config.get('updates.client_only') &&
+        intel.notes.client < 1 &&
+        !intel.last_status_by_client)
+    {
+        log.debug(label + `no client updates on ${context.wr}, skipping`);
+        return;
+    }
+
     switch (notes_by.length){
     case 0:
         // $person changed status to $status
@@ -79,7 +87,7 @@ Updater.prototype.run = function(context){
                     : intel.last_status_by_client
                         ? intel.last_status_by
                         : 'we';
-            msg = `${intel.last_note_by} added a note and ${who}set status to ${format.status(intel.last_status)}`;
+            msg = `${intel.last_note_by} added a note and ${who} set status to ${format.status(intel.last_status)}`;
         }
         break;
     default:
@@ -98,7 +106,7 @@ Updater.prototype.run = function(context){
         log.info(label + s);
         this.rocket.send(s).to(webhook);
     }else{
-        log.debug(label + 'no notes or status changes, only timesheets');
+        log.debug(label + `no notes or status changes on ${context.wr}, only timesheets`);
     }
 }
 
