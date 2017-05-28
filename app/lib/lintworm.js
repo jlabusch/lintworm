@@ -232,8 +232,9 @@ Lintworm.prototype.lint = async function(wr, next) {
     };
 
     process.nextTick(() => {
-        ['lint.activity'].forEach((key) => {
+        Object.keys(this.hooks).forEach((key) => {
             if (this.hooks[key]){
+                log.trace(label + 'processing hook ' + key);
                 this.hooks[key].forEach((fn) => {
                     fn(context);
                 });
