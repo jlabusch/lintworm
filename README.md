@@ -21,6 +21,7 @@ Lintworm watches WRMS and mentions things we might want to react to.
 
 ### Things to know:
 
+ - `make test` uses Istanbul to write code coverage metrics to `./coverage/lcov-report/index.html`
  - We monkeypatch Bunyan to change the "simple" log format
  - The RocketChat incoming webhook script is `./rocketchat/incoming.js`
  - You can change the log level in `./config/default.json:log.level`
