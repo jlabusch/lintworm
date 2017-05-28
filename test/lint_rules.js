@@ -68,7 +68,7 @@ describe(require('path').basename(__filename), function(){
                 )
             );
         });
-        it('should flag unallocated in general', function(done){
+        it.skip('should flag unallocated in general', function(done){
             lwm.__apply_lint_rules.apply(
                 lwm,
                 setup(
@@ -178,14 +178,12 @@ describe(require('path').basename(__filename), function(){
                         should.not.exist(err);
                         should.exist(data);
                         should.exist(data.rows);
-                        data.rows.length.should.equal(3);
+                        data.rows.length.should.equal(2);
                         should.exist(data.rows[0].warning);
-                        should.exist(data.rows[0].warning.match(/allocated/));
-                        should.exist(data.rows[1].warning);
-                        should.exist(data.rows[1].warning.match(/over budget/));
-                        should.exist(data.rows[2].wr);
-                        should.exist(data.rows[2].msg);
-                        should.exist(data.rows[2].msg.match(/^2 warning/));
+                        should.exist(data.rows[0].warning.match(/over budget/));
+                        should.exist(data.rows[1].wr);
+                        should.exist(data.rows[1].msg);
+                        should.exist(data.rows[1].msg.match(/^1 warning/));
                         done();
                     }
                 )

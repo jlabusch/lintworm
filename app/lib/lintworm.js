@@ -273,9 +273,10 @@ Lintworm.prototype.__apply_lint_rules = function(context, next){
 
     let rules = require('./lint_rules');
 
-    if (rules.unallocated(context)){
-        res.push({warning: "nobody allocated", score: -10});
-    }else if (rules.multiple_allocations(context)){
+    // if (rules.unallocated(context)){
+    //     res.push({warning: "nobody allocated", score: -10});
+    // }else
+    if (rules.multiple_allocations(context)){
         res.push({warning: "over-allocated", score: -5});
     }
 
