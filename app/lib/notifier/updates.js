@@ -32,30 +32,31 @@ Updater.prototype.run = function(context){
             last_status_by_client: undefined,
             last_status_by: undefined
         },
-        rows = context.activity && context.activity.rows ? context.activity.rows : [],
-        // Take only new updates, gathering intel as a side effect
-        updates = rows.filter((r) => {
-            if (r.fresh){
-                let ours = our_email_domain(r.email),
-                    name = r.fullname.replace(/ - Euro/i, '');
-                if (r.source === 'note'){
-                    if (ours){
-                        intel.notes.us++;
-                    }else{
-                        intel.notes.client++;
-                    }
-                    intel.notes[name] = true;
-                    intel.last_note_by_client = !ours;
-                    intel.last_note_by = name;
-                }else if (r.source === 'status'){
-                    intel.last_status = r.status;
-                    intel.last_status_by_client = !ours;
-                    intel.last_status_by = name;
+        rows = context.activity && context.activity.rows ? context.activity.rows : [];
+
+    // Take only new updates, gathering intel as a side effect
+    rows.forEach((r) => {
+        if (r.fresh){
+            let ours = our_email_domain(r.email),
+                name = r.fullname.replace(/ - Euro/i, '');
+            if (r.source === 'note'){
+                if (ours){
+                    intel.notes.us++;
+                }else{
+                    intel.notes.client++;
                 }
+                intel.notes[name] = true;
+                intel.last_note_by_client = !ours;
+                intel.last_note_by = name;
+            }else if (r.source === 'status'){
+                intel.last_status = r.status;
+                intel.last_status_by_client = !ours;
+                intel.last_status_by = name;
             }
-            return r.fresh;
-        }),
-        notes_by = Object.keys(intel.notes).filter((k) => { return intel.notes[k] === true });
+        }
+    });
+
+    const notes_by = Object.keys(intel.notes).filter((k) => { return intel.notes[k] === true });
 
     let msg = undefined;
 
