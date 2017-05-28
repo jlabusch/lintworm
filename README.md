@@ -2,6 +2,10 @@
 
 Lintworm watches WRMS and mentions things we might want to react to.
 
+[![Code Climate](https://codeclimate.com/github/jlabusch/lintworm/badges/gpa.svg)](https://codeclimate.com/github/jlabusch/lintworm)
+[![Test Coverage](https://codeclimate.com/github/jlabusch/lintworm/badges/coverage.svg)](https://codeclimate.com/github/jlabusch/lintworm/coverage)
+
+
 ### For example:
 
  - A client posts a comment or changes a ticket's status (by default our own comments are ignored)
