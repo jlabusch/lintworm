@@ -11,7 +11,7 @@ function Notifier(lintworm, rocket){
     this.lwm = lintworm || require('../lintworm');
     this.rocket = rocket || require('../rocket');
 
-    this.notifiers = ['linting', 'timesheets', 'wr_updates'];
+    this.notifiers = ['linting', 'timesheets', 'updates'];
 
     this.notifiers.forEach((n) => {
         let type = require('./' + n);
