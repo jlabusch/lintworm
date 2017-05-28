@@ -20,6 +20,7 @@
   },
   "devDependencies": {
     "browserify": "~14",
+    "codeclimate-test-reporter": "*",
     "eslint": "~3.19",
     "eslint-plugin-import": "*",
     "eslint-plugin-node": "*",

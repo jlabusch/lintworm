@@ -10,6 +10,7 @@ test: app
 	mkdir -p ../coverage
 	$(DOCKER) run -it --rm \
         -v $$(dirname $$PWD)/test:/opt/test:ro \
+        -v $$(dirname $$PWD)/.git:/opt/.git:ro \
         -v $$(dirname $$PWD)/coverage:/opt/coverage \
         -v $$(dirname $$PWD)/app/lib:/opt/lib:ro \
         -v $$(dirname $$PWD)/app/index.js:/opt/index.js:ro \
