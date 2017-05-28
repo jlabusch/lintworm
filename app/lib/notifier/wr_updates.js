@@ -36,20 +36,21 @@ Updater.prototype.run = function(context){
         // Take only new updates, gathering intel as a side effect
         updates = rows.filter((r) => {
             if (r.fresh){
-                let ours = our_email_domain(r.email);
+                let ours = our_email_domain(r.email),
+                    name = r.fullname.replace(/ - Euro/i, '');
                 if (r.source === 'note'){
                     if (ours){
                         intel.notes.us++;
                     }else{
                         intel.notes.client++;
                     }
-                    intel.notes[r.fullname] = true;
+                    intel.notes[name] = true;
                     intel.last_note_by_client = !ours;
-                    intel.last_note_by = r.fullname;
+                    intel.last_note_by = name;
                 }else if (r.source === 'status'){
                     intel.last_status = r.status;
                     intel.last_status_by_client = !ours;
-                    intel.last_status_by = r.fullname;
+                    intel.last_status_by = name;
                 }
             }
             return r.fresh;

@@ -11,25 +11,46 @@ function _L(f){
 
 function Linting(refs){
     this.first_run = true;
+
     this.lwm = refs.lwm;
     this.rocket = refs.rocket;
+
+    this.msg_queue = [];
 }
 
 Linting.prototype.start = function(){
-    let self = this;
-    function sweep_wrs(err){
-        let delay = 60*1000;
-        if (self.first_run){
-            self.first_run = false;
-            delay = 10*1000;
+    const minute = 60*1000,
+        second = 1000,
+        label = _L('interval');
+
+    function print_err(e){
+        if (e){
+            log.error(label + (e.stack || e));
         }
-        if (err){
-            log.error(_L('interval') + (err.stack || err));
-            delay = delay*10;
-        }
-        setTimeout(() => { self.run(sweep_wrs) }, delay);
     }
-    sweep_wrs();
+
+    let busy = false;
+
+    let sweep_fn = () => {
+        if (busy){
+            log.debug(label + 'already busy, skipping this run()');
+            return;
+        }
+        busy = true;
+        this.run(err => {
+            print_err(err);
+            busy = false;
+        });
+    };
+
+    setTimeout(sweep_fn, 5*second);
+
+    setInterval(sweep_fn, config.get('lint.sweep_interval_minutes')*minute)
+
+    setInterval(
+        () => { this.flush_messages(print_err) },
+        config.get('lint.flush_interval_minutes')*minute
+    );
 }
 
 Linting.prototype.run = function(next){
@@ -59,18 +80,50 @@ Linting.prototype.process_update = function(x, xs, next){
             next && next(err);
             return;
         }
-        log.info(label + JSON.stringify(data.rows, null, 2));
-        let warnings = data.rows.filter((r) => { return r.warning }).map((r) => { return r.warning; });
+        log.debug(label + JSON.stringify(data.rows, null, 2));
+        let warnings = data.rows
+            .filter((r) => { return r.warning })
+            .map((r) => { return r.warning });
         if (warnings.length){ // then there's something unusual
-            let v = data.rows[data.rows.length-1],
-                a = v.to && v.to.length ? ` - see ${v.to.map(to_chat_handle).join(', ')}` : '',
-                s = `We need to check ${format.wr(v.wr)} for ${format.org(v.org)} ${format.status(x.status)} ${format.brief(x.brief)} _(${warnings.join(', ')}${a})_\n`;
-            log.warn(`${s}${v.msg}\n---------------------------------\n`);
-
-            this.rocket.send(s).about(v.wr).to(webhook);
+            this.msg_queue.push({req: x, warnings: warnings, summary: data.rows[data.rows.length-1]});
         }
         process.nextTick(() => { this.process_update(xs.shift(), xs, next); });
     });
+}
+
+Linting.prototype.flush_messages = function(next){
+    const label = _L('flush_messages');
+
+    log.trace(label + `sending ${this.msg_queue.length} messages...`);
+
+    if (this.msg_queue.length < 1){
+        next && next();
+        return;
+    }
+
+    let key = []; // gathered as a side-effect of $lines
+
+    const lines = this.msg_queue.map(
+            (r) => {
+                key.push(r.summary.wr);
+                return format_single_msg(r)
+            }
+        ),
+        msg = 'We need to check ' + (lines.length > 1 ? '\n> ' : '') + lines.join('> ');
+
+    log.warn(label + msg);
+
+    this.msg_queue = [];
+
+    this.rocket.send(msg).about(key.join(',')).to(webhook).then(next);
+}
+
+function format_single_msg(x){
+    const a = x.summary.to && x.summary.to.length
+            ? ` - see ${x.summary.to.map(to_chat_handle).join(', ')}`
+            : '';
+
+    return `${format.wr(x.summary.wr)} for ${format.org(x.summary.org)} ${format.status(x.req.status)} ${format.brief(x.req.brief)} _(${x.warnings.join(', ')}${a})_\n`;
 }
 
 function to_chat_handle(email){

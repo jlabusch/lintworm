@@ -17,7 +17,7 @@ TimesheetChecker.prototype.start = function(){
     if (config.get('timesheets.check_on_startup')){
         setTimeout(() => { this.run() }, 5*1000);
     }
-    setInterval(() => { this.run() }, 1*60*60*1000);
+    setInterval(() => { this.run() }, config.get('timesheets.check_interval_minutes')*60*1000);
 }
 
 TimesheetChecker.prototype.run = function(){

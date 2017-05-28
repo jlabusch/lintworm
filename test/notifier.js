@@ -19,7 +19,8 @@ Lintworm.prototype.check_timesheets = function(next){
 }
 
 Lintworm.prototype.lint = function(wr, next){
-    next(this.state.lint.err, this.state.lint.data);
+    let state = this.state.lint.shift();
+    next(state.err, state.data);
 }
 
 function Rocket(next){
@@ -29,8 +30,10 @@ function Rocket(next){
 Rocket.prototype.send = function(msg){
     let key = msg,
         uri = null,
-        next = function(){};
-    process.nextTick(() => { this.next && this.next(msg) });
+        next = this.next || function(){};
+    process.nextTick(() => {
+        next && next(null, msg)
+    });
     let obj = {
         about: (id) => {
             key = id;
@@ -59,7 +62,7 @@ describe(require('path').basename(__filename), function(){
                     data: { rows: [{worked: 69, fullname: 'Bob'}] }
                 }
             });
-            let rocket = new Rocket(msg => {
+            let rocket = new Rocket((err, msg) => {
                 should.exist(msg);
                 should.exist(msg.match(/Bob\s+69%/));
                 done();
@@ -78,12 +81,15 @@ describe(require('path').basename(__filename), function(){
                 }
             });
             let tried_to_send = null;
-            let rocket = new Rocket(msg => { tried_to_send = msg; });
+            let rocket = new Rocket((err, msg) => { tried_to_send = msg; });
             let notifier = new type({lwm: lintworm, rocket: rocket});
             notifier.run(function(err){
                 should.not.exist(err);
-                (tried_to_send === null).should.equal(true);
-                done();
+                notifier.flush_messages(err => {
+                    should.not.exist(err);
+                    (tried_to_send === null).should.equal(true);
+                    done();
+                });
             });
         });
         it('should process', function(done){
@@ -96,25 +102,82 @@ describe(require('path').basename(__filename), function(){
                         ]
                     }
                 },
-                lint: {
+                lint: [
+                    {
+                        err: null,
+                        data: {
+                            rows: [
+                                {warning: 'hello world'},
+                                {to: ['Bob'], wr: 123, org: 'Org', msg: '1 Warning'}
+                            ]
+                        }
+                    }
+                ]
+            });
+            let rocket = new Rocket();
+            let notifier = new type({lwm: lintworm, rocket: rocket});
+
+            notifier.run(err => {
+                should.not.exist(err);
+                notifier.flush_messages((err, msg) => {
+                    should.not.exist(err);
+                    should.exist(msg);
+                    should.exist(msg.match(/123/));
+                    should.exist(msg.match(/Bob/));
+                    should.exist(msg.match(/hello world/));
+                    done();
+                });
+            });
+        });
+        it('should process multiple', function(done){
+            let lintworm = new Lintworm({
+                poll: {
                     err: null,
                     data: {
                         rows: [
-                            {warning: 'hello world'},
-                            {to: ['Bob'], wr: 123, org: 'Org', msg: '1 Warning'}
+                            {request_id: 123, brief: 'test', status: 'Finished'},
+                            {request_id: 234, brief: 'test', status: 'Finished'}
                         ]
                     }
-                }
+                },
+                lint: [
+                    {
+                        err: null,
+                        data: {
+                            rows: [
+                                {warning: 'hello world'},
+                                {to: ['Bob'], wr: 123, org: 'Org', msg: '1 Warning'}
+                            ]
+                        }
+                    },
+                    {
+                        err: null,
+                        data: {
+                            rows: [
+                                {warning: 'hi again world'},
+                                {to: ['Jane'], wr: 234, org: 'Org', msg: '1 Warning'}
+                            ]
+                        }
+                    }
+                ]
             });
-            let rocket = new Rocket(msg => {
-                should.exist(msg);
-                should.exist(msg.match(/123/));
-                should.exist(msg.match(/Bob/));
-                should.exist(msg.match(/hello world/));
-                done();
-            });
+            let rocket = new Rocket();
             let notifier = new type({lwm: lintworm, rocket: rocket});
-            notifier.run(function(){});
+
+            notifier.run(err => {
+                should.not.exist(err);
+                notifier.flush_messages((err, msg) => {
+                    should.not.exist(err);
+                    should.exist(msg);
+                    should.exist(msg.match(/123/));
+                    should.exist(msg.match(/Bob/));
+                    should.exist(msg.match(/hello world/));
+                    should.exist(msg.match(/234/));
+                    should.exist(msg.match(/Jane/));
+                    should.exist(msg.match(/hi again world/));
+                    done();
+                });
+            });
         });
     });
 });

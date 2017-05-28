@@ -49,7 +49,9 @@ exports.send = function(msg){
             return obj;
         },
         then: (fn) => {
-            next = fn;
+            if (typeof(fn) === 'function'){
+                next = fn;
+            }
             return obj;
         }
     };

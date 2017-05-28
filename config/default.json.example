@@ -15,9 +15,12 @@
         "port": 80
     },
     "timesheets": {
+        "check_interval_minutes": 60,
         "check_on_startup": false
     },
     "lint": {
+        "sweep_interval_minutes": 1,
+        "flush_interval_minutes": 5,
         "rewind_on_startup": 0,
         "max_allocations": 2,
         "hours_before_quote_required": 1,
