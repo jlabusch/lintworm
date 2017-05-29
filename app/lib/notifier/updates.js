@@ -28,6 +28,7 @@ Updater.prototype.run = function(context){
             },
             last_note_by_client: undefined,
             last_note_by: undefined,
+            last_note: undefined,
             last_status: undefined,
             last_status_by_client: undefined,
             last_status_by: undefined
@@ -48,6 +49,7 @@ Updater.prototype.run = function(context){
                 intel.notes[name] = true;
                 intel.last_note_by_client = !ours;
                 intel.last_note_by = name;
+                intel.last_note = r.note;
             }else if (r.source === 'status'){
                 intel.last_status = r.status;
                 intel.last_status_by_client = !ours;
@@ -80,15 +82,24 @@ Updater.prototype.run = function(context){
             // $person added a note
             msg = `${intel.last_note_by} added a note`;
         }else{
-            // $person    added a note and            changed status to $status (same person did both things)
-            // $person    added a note and we         changed status to $status (different person for each, latter was us)
-            // $customer1 added a note and $customer2 changed status to $status (different person for each, latter not us)
+            // $person  added a note and        changed status to $status (same person did both things)
+            // $person  added a note and we     changed status to $status (different person for each, latter was us)
+            // $cust1   added a note and $cust2 changed status to $status (different person for each, latter not us)
             let who = intel.last_note_by === intel.last_status_by
                     ? ''
                     : intel.last_status_by_client
                         ? intel.last_status_by
                         : 'we';
             msg = `${intel.last_note_by} added a note and ${who} set status to ${format.status(intel.last_status)}`;
+        }
+        // Add a snippet of their update
+        if (intel.last_note_by_client){
+            const note_length_limit = 80;
+            let note = intel.last_note.length > note_length_limit
+                ? intel.last_note.substr(0, note_length_limit) + '... _(continued on WR)_'
+                : intel.last_note,
+                indent = '> ';
+            msg += `\n${indent}${note.replace(/\n\s*\n/g, '\n').replace(/\n/g, '\n' + indent)}`;
         }
         break;
     default:
