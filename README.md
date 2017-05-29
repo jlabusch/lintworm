@@ -31,3 +31,8 @@ Lintworm watches WRMS and mentions things we might want to react to.
  - You can change the log level in `./config/default.json:log.level`
  - If you want to change the queries, see `./app/lib/lintworm.js`
  - To add new notifiers, take a look in `./app/lib/notifiers/*`. Use `Lintworm.add_hook` if you can, to avoid additional queries.
+ - To send test coverage reports to CodeClimate, add the following script to `package.json`:
+
+```javascript
+"posttest": "CODECLIMATE_REPO_TOKEN=$token ./node_modules/.bin/codeclimate-test-reporter < ./coverage/lcov.info",
+```
