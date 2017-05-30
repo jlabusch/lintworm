@@ -8,7 +8,9 @@
     },
     "rocketchat": {
         "lint": null,
-        "updates": null,
+        "update_channels": {
+            "default": null
+        },
         "timesheet": null
     },
     "server": {

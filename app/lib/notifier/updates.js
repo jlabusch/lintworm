@@ -2,7 +2,7 @@ var log     = require('../log'),
     config	= require('config'),
     our_email_domain = require('../our_email_domain'),
     format  = require('../rocket').format,
-    webhook = config.get('rocketchat.updates');
+    channels= config.get('rocketchat.update_channels');
 
 'use strict';
 
@@ -114,7 +114,9 @@ Updater.prototype.run = function(context){
     }
 
     if (msg){
-        let s = `${format.org(context.req.org)} ${format.wr(context.wr)}: ${msg}\n`;
+        const org = format.org(context.req.org),
+            webhook = channels[org] || channels.default;
+        let s = `${org} ${format.wr(context.wr)}: ${msg}\n`;
         log.info(label + s);
         this.rocket.send(s).to(webhook);
     }else{
