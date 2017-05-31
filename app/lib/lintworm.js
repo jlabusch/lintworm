@@ -67,7 +67,7 @@ const poll_sql =
             JOIN usr ru on ru.user_no=r.requester_id
             JOIN organisation o on o.org_code=ru.org_code
             WHERE ra.date > $1 AND ra.date < $2
-                AND r.system_id NOT IN (2881,2657)
+                AND r.system_id NOT IN (2881,2657,2758)
                 AND o.org_code in (
                     SELECT o.org_code
                         FROM organisation o
