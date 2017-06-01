@@ -8,8 +8,9 @@
     },
     "rocketchat": {
         "lint": null,
-        "update_channels": {
-            "default": null
+        "update": null,
+        "channels": {
+            "Customer": "#foo"
         },
         "timesheet": null
     },

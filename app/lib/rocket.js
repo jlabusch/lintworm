@@ -30,6 +30,7 @@ exports.format = {
 };
 
 // Usage:
+//  - rocket.send(msg).about(key).to(uri).channel('#foo').then(fn)
 //  - rocket.send(msg).about(key).to(uri).then(fn)
 //  - rocket.send(msg).about(key).to(uri)   // fn is noop
 //  - rocket.send(msg).about(key)           // uri=cfg_uri
@@ -37,8 +38,9 @@ exports.format = {
 exports.send = function(msg){
     let key = msg,
         uri = config.get('rocketchat.lint'),
+        channel = undefined,
         next = function(){};
-    process.nextTick(() => { __send(key, msg, uri, next); });
+    process.nextTick(() => { __send(key, msg, uri, channel, next); });
     let obj = {
         about: (id) => {
             key = id;
@@ -46,6 +48,10 @@ exports.send = function(msg){
         },
         to: (dest) => {
             uri = dest;
+            return obj;
+        },
+        channel: (chan) => {
+            channel = chan;
             return obj;
         },
         then: (fn) => {
@@ -58,7 +64,7 @@ exports.send = function(msg){
     return obj;
 }
 
-function __send(key, msg, uri, next){
+function __send(key, msg, uri, channel, next){
     const label = _L('send');
     if (sent_messages[key]){
         log.info(label + `Skipping repeat of ${key} [last sent ${sent_messages[key]}]`);
@@ -66,6 +72,12 @@ function __send(key, msg, uri, next){
         return;
     }
     sent_messages[key] = new Date();
+    const obj = {
+        text: msg
+    }
+    if (channel){
+        obj.channel = channel;
+    }
     if (uri){
         const uri_parts = uri ? uri.match(/https:\/\/(.*?)\/(.*)/) : [],
             options = {
@@ -91,10 +103,10 @@ function __send(key, msg, uri, next){
             log.error(label + e);
             next(e);
         });
-        req.write(JSON.stringify({text: msg}));
+        req.write(JSON.stringify(obj));
         req.end();
     }else{
-        log.trace(label + `[${key}] ${msg} => not sent, rocketchat.hook not set`);
+        log.debug(label + `[${key}] ${JSON.stringify(obj)} => not sent, rocketchat hook not set`);
         next(null, true);
     }
 }

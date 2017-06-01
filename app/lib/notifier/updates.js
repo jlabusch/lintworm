@@ -2,7 +2,8 @@ var log     = require('../log'),
     config	= require('config'),
     our_email_domain = require('../our_email_domain'),
     format  = require('../rocket').format,
-    channels= config.get('rocketchat.update_channels');
+    channels= config.get('rocketchat.channels'),
+    webhook = config.get('rocketchat.update');
 
 'use strict';
 
@@ -115,10 +116,10 @@ Updater.prototype.run = function(context){
 
     if (msg){
         const org = format.org(context.req.org),
-            webhook = channels[org] || channels.default;
+            chan = channels[org]; // undefined is ok
         let s = `${org} ${format.wr(context.wr)}: ${msg}\n`;
         log.info(label + s);
-        this.rocket.send(s).to(webhook);
+        this.rocket.send(s).to(webhook).channel(chan);
     }else{
         log.debug(label + `no notes or status changes on ${context.wr}, only timesheets`);
     }
