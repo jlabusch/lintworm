@@ -17,7 +17,7 @@ function to_org_abbrev(o){
     }
     o = o.replace(/ ?University( of )?/g, '');
     if (o.match(/\s/)){
-        o = o.replace(/^The/, '').match(/(\b[A-Z])/g).join('');
+        o = o.replace(/^The/, '').match(/(\b[A-Z]+)/g).join('');
     }
     return o;
 }

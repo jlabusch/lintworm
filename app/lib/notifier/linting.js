@@ -82,10 +82,11 @@ Linting.prototype.process_update = function(x, xs, next){
         }
         log.debug(label + JSON.stringify(data.rows, null, 2));
         let warnings = data.rows
-            .filter((r) => { return r.warning })
-            .map((r) => { return r.warning });
-        if (warnings.length){ // then there's something unusual
-            this.msg_queue.push({req: x, warnings: warnings, summary: data.rows[data.rows.length-1]});
+                            .filter((r) => { return r.warning })
+                            .map((r) => { return r.warning }),
+            last_row = data.rows[data.rows.length - 1];
+        if (warnings.length && !last_row.org.match(/Humanitarian/)){ // then there's something unusual
+            this.msg_queue.push({req: x, warnings: warnings, summary: last_row});
         }
         process.nextTick(() => { this.process_update(xs.shift(), xs, next); });
     });
