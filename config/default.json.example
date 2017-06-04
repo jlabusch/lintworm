@@ -15,7 +15,10 @@
         "timesheet": null
     },
     "server": {
-        "port": 80
+        "port": 80,
+        "wrms_poll_on_startup": true,
+        "wrms_poll_interval_seconds": 60,
+        "wrms_uri": "https://wrms.catalyst.net.nz"
     },
     "timesheets": {
         "check_interval_minutes": 60,

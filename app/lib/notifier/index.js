@@ -1,7 +1,6 @@
 'use strict';
 
 function Notifier(lintworm, rocket){
-    this.lwm = lintworm || require('../lintworm');
     this.rocket = rocket || require('../rocket');
 
     this.notifiers = ['linting', 'timesheets', 'updates'];
@@ -14,7 +13,7 @@ function Notifier(lintworm, rocket){
 
 Notifier.prototype.start = function(){
     this.notifiers.forEach((n) => {
-        this[n].start();
+        this[n].start(this);
     });
 }
 

@@ -1,7 +1,8 @@
 var log     = require('../log'),
     config	= require('config'),
     our_email_domain = require('../our_email_domain'),
-    format  = require('../rocket').format,
+    rocket  = require('../rocket'),
+    format  = rocket.format,
     channels= config.get('rocketchat.channels'),
     webhook = config.get('rocketchat.update');
 
@@ -12,12 +13,12 @@ function _L(f){
 }
 
 function Updater(refs){
-    this.lwm = refs.lwm;
-    this.rocket = refs.rocket;
+    this.rocket = refs.rocket || rocket;
+    this.__test_hook = refs.__test_hook || function(){};
 }
 
-Updater.prototype.start = function(){
-    this.lwm.add_hook('lint.activity', context => { this.run(context) });
+Updater.prototype.start = function(notifier){
+    notifier.linting.add_hook('updates', context => { this.run(context) });
 }
 
 Updater.prototype.run = function(context){
@@ -95,7 +96,7 @@ Updater.prototype.run = function(context){
         }
         // Add a snippet of their update
         if (intel.last_note_by_client){
-            const note_length_limit = 80;
+            const note_length_limit = 140;
             let note = intel.last_note.length > note_length_limit
                 ? intel.last_note.substr(0, note_length_limit) + '... _(continued on WR)_'
                 : intel.last_note,
@@ -119,7 +120,7 @@ Updater.prototype.run = function(context){
             chan = channels[org]; // undefined is ok
         let s = `${org} ${format.wr(context.wr)}: ${msg}\n`;
         log.info(label + s);
-        this.rocket.send(s).to(webhook).channel(chan);
+        this.rocket.send(s).to(webhook).channel(chan).then(this.__test_hook);
     }else{
         log.debug(label + `no notes or status changes on ${context.wr}, only timesheets`);
     }

@@ -1,6 +1,6 @@
-var log = require('./log'),
+var log = require('../../log'),
     config = require('config'),
-    our_email_domain = require('./our_email_domain'),
+    our_email_domain = require('../../our_email_domain'),
     max_allocations = config.get('lint.max_allocations'),
     quote_leeway = config.get('lint.hours_before_quote_required'),
     budget_grace = config.get('lint.acceptable_hours_budget_overrun');
@@ -15,19 +15,23 @@ function contains_row_data(x){
     return x && x.rows && x.rows.length > 0;
 }
 
-exports.unallocated = function(context){
+function unallocated(context){
     return contains_row_data(context.alloc) === false &&
         ['Finished', 'Cancelled'].indexOf(context.req.status) < 0;
 }
+
+exports.unallocated = unallocated;
 
 function is_not_sysadmin(x){
     return !x.fullname || x.fullname !== 'Catalyst Sysadmin Europe';
 }
 
-exports.multiple_allocations = function(context){
+function multiple_allocations(context){
     return contains_row_data(context.alloc) &&
         context.alloc.rows.filter(is_not_sysadmin).length > max_allocations;
 }
+
+exports.multiple_allocations = multiple_allocations;
 
 function sum_quotes(direct, indirect){
     let result = {
@@ -89,7 +93,7 @@ function under_warranty(context){
 }
 exports.under_warranty = under_warranty;
 
-exports.exceeds_approved_budget = function(context){
+function exceeds_approved_budget(context){
     if (contains_row_data(context.quote) && !context.sum_quotes){
         context.sum_quotes = sum_quotes(context.quote.rows);
     }
@@ -105,7 +109,9 @@ exports.exceeds_approved_budget = function(context){
     return diff + grace < 0;
 }
 
-exports.exceeds_requested_budget = function(context){
+exports.exceeds_approved_budget = exceeds_approved_budget;
+
+function exceeds_requested_budget(context){
     if (!context.sum_quotes){
         context.sum_quotes = sum_quotes(context.quote, context.parents);
     }
@@ -115,7 +121,9 @@ exports.exceeds_requested_budget = function(context){
     return !under_warranty(context) && a - b < 0;
 }
 
-exports.requires_parent_budget = function(context){
+exports.exceeds_requested_budget = exceeds_requested_budget;
+
+function requires_parent_budget(context){
     if (!context.sum_quotes){
         context.sum_quotes = sum_quotes(context.quote, context.parents);
     }
@@ -125,6 +133,7 @@ exports.requires_parent_budget = function(context){
             context.sum_quotes.total.approved >= context.req.total_hours :
             false;
 }
+exports.requires_parent_budget = requires_parent_budget;
 
 function read_notes(context){
     if (context.last_comment){
@@ -149,7 +158,7 @@ function read_notes(context){
     });
 }
 
-exports.too_many_notes_with_no_timesheets = function(context){
+function too_many_notes_with_no_timesheets(context){
     if (!contains_row_data(context.activity)){
         return false;
     }
@@ -159,7 +168,9 @@ exports.too_many_notes_with_no_timesheets = function(context){
     return context.our_notes.length > 1 && context.req.total_hours === 0;
 }
 
-exports.being_chased_for_response = function(context){
+exports.too_many_notes_with_no_timesheets = too_many_notes_with_no_timesheets;
+
+function being_chased_for_response(context){
     if (!contains_row_data(context.activity)){
         return false;
     }
@@ -172,4 +183,111 @@ exports.being_chased_for_response = function(context){
     return ours + grace < theirs;
 }
 
+exports.being_chased_for_response = being_chased_for_response;
+
+function format_author(row){
+    return row.email;
+}
+
+exports.apply = function(context, next){
+    let res = [],
+        author = [];
+
+    // if (unallocated(context)){
+    //     res.push({warning: "nobody allocated", score: -10});
+    // }else
+    if (multiple_allocations(context)){
+        res.push({warning: "over-allocated", score: -5});
+    }
+
+    if (contains_row_data(context.alloc)){
+        context.alloc.rows.forEach((x) => {
+            if (x.email &&
+                x.fullname &&
+                our_email_domain(x.email) &&
+                x.fullname !== 'Catalyst Sysadmin Europe')
+            {
+                author.push(format_author(x));
+            }
+        });
+    }
+
+    if (under_warranty(context)){
+        res.push({
+            info: `Found warranty tag`,
+            score: 20
+        });
+    }else if (exceeds_requested_budget(context)){
+        res.push({
+            warning: `over budget by ${context.req.total_hours - context.sum_quotes.total.quoted}h`,
+            score: -20
+        });
+    }else if (exceeds_approved_budget(context)){
+        res.push({
+            warning: `needs another ${context.req.total_hours - context.sum_quotes.total.approved}h approved`,
+            score: -10
+        });
+    }else if (requires_parent_budget(context)){
+        res.push({
+            info: "relies on parent WR quotes, please check the math",
+            score: -5
+        });
+    }
+
+    if (too_many_notes_with_no_timesheets(context)){
+        res.push({
+            warning: `${context.our_notes.length} notes from us with no timesheets`,
+            score: -5
+        });
+    }
+
+    if (context.last_comment && context.last_comment.client){
+        if (!context.last_comment.catalyst){
+            res.push({
+                warning: 'client notes with no response from us',
+                score: -5
+            });
+        }else if (being_chased_for_response(context)){
+            res.push({
+                warning: 'client just bumped a forgotten ticket',
+                score: -5
+            });
+        }
+    }
+
+    // Add our last updater to authors if they're not there already
+    if (context.our_notes && context.our_notes.length){
+        let last_updater = format_author(context.our_notes[context.our_notes.length - 1]);
+        if (author.findIndex((x) => { return x === last_updater }) < 0){
+            author.push(last_updater);
+        }
+    }
+
+    let num_warnings = res.reduce((acc, val) => { return acc + (val.warning ? 1 : 0) }, 0);
+    if (num_warnings > 0){
+        let score = res.reduce((acc, val) => { return acc+val.score }, 0);
+        res.push({
+            msg: `${num_warnings} warning${num_warnings === 1 ? '' : 's'}, final score ${score}`
+        });
+    }else{
+        res.push({msg: `No warnings for WR# ${context.wr}`});
+    }
+    res[res.length-1].to = author;
+    res[res.length-1].wr = context.wr;
+    res[res.length-1].org = context.req.org;
+    res[res.length-1].brief = context.req.brief;
+    res[res.length-1].status = context.req.status;
+
+    // const label = _L('__apply_lint_rules');
+    // log.trace(label + wr + ': ' + JSON.stringify(res, null, 2));
+    return next(null, {rows: res});
+}
+
+function to_chat_handle(email){
+    let nicks = config.get('chat_nicks');
+    if (nicks[email]){
+        return nicks[email];
+    }
+    return email;
+}
 

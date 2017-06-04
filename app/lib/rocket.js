@@ -1,5 +1,6 @@
 var log     = require('./log'),
     config	= require('config'),
+    wr_uri  = config.get('server.wrms_uri'),
     https   = require('https');
 
 'use strict';
@@ -22,8 +23,10 @@ function to_org_abbrev(o){
     return o;
 }
 
+exports.__test_override_https = function(x){ https = x; }
+
 exports.format = {
-    wr: (n) => { return `\`WR #${n}\` https://wrms.catalyst.net.nz/${n}` },
+    wr: (n) => { return `\`WR #${n}\` ${wr_uri}/${n}` },
     org: to_org_abbrev,
     status: (s) => { return `\`${s}\`` },
     brief: (b) => { return `*${b.length > 45 ? b.slice(0,42) + '...' : b}*` }
@@ -68,7 +71,7 @@ function __send(key, msg, uri, channel, next){
     const label = _L('send');
     if (sent_messages[key]){
         log.info(label + `Skipping repeat of ${key} [last sent ${sent_messages[key]}]`);
-        next(null, false);
+        next(null, null);
         return;
     }
     sent_messages[key] = new Date();
@@ -96,7 +99,7 @@ function __send(key, msg, uri, channel, next){
                     next(new Error(e));
                 }else{
                     log.trace(label + `[${key}] ${msg} => ${res.statusCode}`);
-                    next(null, true);
+                    next(null, obj);
                 }
             });
         req.on('error', (e) => {
@@ -107,7 +110,8 @@ function __send(key, msg, uri, channel, next){
         req.end();
     }else{
         log.debug(label + `[${key}] ${JSON.stringify(obj)} => not sent, rocketchat hook not set`);
-        next(null, true);
+        obj.missing_uri = true;
+        next(null, obj);
     }
 }
 

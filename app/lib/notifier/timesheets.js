@@ -1,4 +1,6 @@
 var log     = require('../log'),
+    db      = require('../db'),
+    rocket  = require('../rocket'),
     config	= require('config'),
     webhook = config.get('rocketchat.timesheet');
 
@@ -9,20 +11,41 @@ function _L(f){
 }
 
 function TimesheetChecker(refs){
-    this.lwm = refs.lwm;
-    this.rocket = refs.rocket;
+    this.rocket = refs.rocket || rocket;
+    this.__test_hook = refs.__test_hook || function(){};
 }
 
-TimesheetChecker.prototype.start = function(){
+TimesheetChecker.prototype.start = function(notifier){
     if (config.get('timesheets.check_on_startup')){
         setTimeout(() => { this.run() }, 5*1000);
     }
     setInterval(() => { this.run() }, config.get('timesheets.check_interval_minutes')*60*1000);
 }
 
+const timesheet_sql = `
+        SELECT u.fullname,
+               u.email,
+               SUM(rt.work_quantity)/40*100 AS worked
+        FROM request_timesheet rt
+        JOIN usr u ON u.user_no=rt.work_by_id
+        WHERE u.email LIKE '%catalyst-eu.net' AND
+              rt.work_on >= current_date - interval '10 days' AND
+              rt.work_on < current_date - interval '3 days'
+        GROUP by u.fullname,u.email
+        ORDER by u.fullname`
+        .replace(/\s+/g, ' ');
+
+function check_timesheets(next){
+    db.get().query("timesheets", timesheet_sql)
+        .then(
+            (data) => { next(null, data); },
+            (err) => { next(err); }
+        );
+}
+
 TimesheetChecker.prototype.run = function(){
     let label = _L('run');
-    this.lwm.check_timesheets((err, data) => {
+    check_timesheets((err, data) => {
         if (err){
             log.error(label + (err.stack || err));
             return;
@@ -36,7 +59,7 @@ TimesheetChecker.prototype.run = function(){
                             }).join('\n')
                             + "```\n"
                 log.warn(`${msg}---------------------------------\n`);
-                this.rocket.send(msg).to(webhook);
+                this.rocket.send(msg).to(webhook).then(this.__test_hook);
             }
         }
     });

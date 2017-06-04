@@ -8,16 +8,17 @@ function _L(f){
     return require('path').basename(__filename) + '#' + f + ' - ';
 }
 
-function DB(){
+function DB(driver){
     let self = this;
 
+    this.driver = driver || pg;
     this.client = null;
     this.config = config.get('db');
 
     this.config.host = this.config.host || 'catwgtn-prod-pg92.db.catalyst.net.nz';
 
-    pg.on('error', function(err){
-        log.error(_L('pg.error') + (err.stack || err));
+    driver.on('error', function(err){
+        log.error(_L('driver.error') + (err.stack || err));
         reconnect(self);
     });
 
@@ -31,7 +32,7 @@ function reconnect(o, done){
             o.client.end();
         }catch(ex){ /* don't care */ }
     }
-    o.client = new pg.Client(o.config);
+    o.client = new o.driver.Client(o.config);
     o.client.connect(function(err){
         if (err){
             log.error(label + "Couldn't connect to database: " + (err.stack || err));
@@ -71,8 +72,12 @@ DB.prototype.query = function(){
     });
 }
 
+let instance = undefined;
+
 module.exports = {
     type: DB,
-    create: function(){ return new DB() }
+    create: function(){ instance = new DB(); return instance; },
+    get: function(){ return instance; },
+    __test_override: function(i){ instance = i; }
 }
 

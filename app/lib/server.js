@@ -2,7 +2,7 @@ var //config  = require('config'),
     restify = require('restify'),
     log     = require('./log'),
     pkg     = require('../package.json'),
-    lwm     = require('./lintworm');
+    linter  = require('./notifier/linting');
 
 const GENERIC_ERROR = {error: 'Service interruption - please try again later'};
 
@@ -79,7 +79,7 @@ setup('get', '/lint/:wr', (req, res, next) => {
         next(false);
         return;
     }
-    lwm.lint(
+    linter.lint(
         wr,
         query_response(
             label,

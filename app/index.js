@@ -2,7 +2,7 @@ var config  = require('config'),
     log     = require('./lib/log'),
     server  = require('./lib/server'),
     notifier= require('./lib/notifier').notifier,
-    lwm     = require('./lib/lintworm');
+    poller  = require('./lib/wrms_polling');
 
 'use strict';
 
@@ -11,7 +11,7 @@ function _L(f){
 }
 
 function run(db, port){
-    lwm.init(db);
+    poller.start();
     notifier.start();
     server.listen(port, (err) => {
         if (err){

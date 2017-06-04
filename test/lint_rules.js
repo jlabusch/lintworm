@@ -2,7 +2,7 @@ var assert  = require('assert'),
     config  = require('config'),
     quote_leeway = config.get('lint.hours_before_quote_required'),
     overrun_leeway = config.get('lint.acceptable_hours_budget_overrun'),
-    lwm = require('../lib/lintworm.js'),
+    rulef = require('../lib/notifier/linting/rules').apply,
     should  = require('should');
 
 function setup(pre, post){
@@ -30,8 +30,8 @@ function setup(pre, post){
 describe(require('path').basename(__filename), function(){
     describe('sanity check', function(){
         it('should handle success', function(done){
-            lwm.__apply_lint_rules.apply(
-                lwm,
+            rulef.apply(
+                rulef,
                 setup(
                     (c) => {
                     },
@@ -50,8 +50,8 @@ describe(require('path').basename(__filename), function(){
     });
     describe('allocation rules', function(){
         it('shouldn\'t flag unallocated for Finished WRs', function(done){
-            lwm.__apply_lint_rules.apply(
-                lwm,
+            rulef.apply(
+                rulef,
                 setup(
                     (c) => {
                         c.req.status = 'Finished';
@@ -69,8 +69,8 @@ describe(require('path').basename(__filename), function(){
             );
         });
         it.skip('should flag unallocated in general', function(done){
-            lwm.__apply_lint_rules.apply(
-                lwm,
+            rulef.apply(
+                rulef,
                 setup(
                     (c) => {
                         c.alloc.rows = [];
@@ -88,8 +88,8 @@ describe(require('path').basename(__filename), function(){
             );
         });
         it('should flag multiple allocation', function(done){
-            lwm.__apply_lint_rules.apply(
-                lwm,
+            rulef.apply(
+                rulef,
                 setup(
                     (c) => {
                         c.alloc.rows = [
@@ -113,8 +113,8 @@ describe(require('path').basename(__filename), function(){
             );
         });
         it('...unless one of them is the Sysadmin account', function(done){
-            lwm.__apply_lint_rules.apply(
-                lwm,
+            rulef.apply(
+                rulef,
                 setup(
                     (c) => {
                         c.alloc.rows = [
@@ -138,8 +138,8 @@ describe(require('path').basename(__filename), function(){
     });
     describe('billing rules', function(){
         it('should recognise warranty', function(done){
-            lwm.__apply_lint_rules.apply(
-                lwm,
+            rulef.apply(
+                rulef,
                 setup(
                     (c) => {
                         c.req.total_hours = quote_leeway + 1;
@@ -163,8 +163,8 @@ describe(require('path').basename(__filename), function(){
             );
         });
         it('should flag hours with no quotes', function(done){
-            lwm.__apply_lint_rules.apply(
-                lwm,
+            rulef.apply(
+                rulef,
                 setup(
                     (c) => {
                         c.wr = 221615,
@@ -190,8 +190,8 @@ describe(require('path').basename(__filename), function(){
             );
         });
         it('should flag unapproved quotes', function(done){
-            lwm.__apply_lint_rules.apply(
-                lwm,
+            rulef.apply(
+                rulef,
                 setup(
                     (c) => {
                         c.req.total_hours = quote_leeway+1;
@@ -215,8 +215,8 @@ describe(require('path').basename(__filename), function(){
             );
         });
         it('should ignore cancelled quotes', function(done){
-            lwm.__apply_lint_rules.apply(
-                lwm,
+            rulef.apply(
+                rulef,
                 setup(
                     (c) => {
                         c.req.total_hours = quote_leeway+1;
@@ -240,8 +240,8 @@ describe(require('path').basename(__filename), function(){
             );
         });
         it('should consider approved quotes', function(done){
-            lwm.__apply_lint_rules.apply(
-                lwm,
+            rulef.apply(
+                rulef,
                 setup(
                     (c) => {
                         c.req.total_hours = quote_leeway+1;
@@ -263,8 +263,8 @@ describe(require('path').basename(__filename), function(){
             );
         });
         it('should respect config.lint.hours_before_quote_required', function(done){
-            lwm.__apply_lint_rules.apply(
-                lwm,
+            rulef.apply(
+                rulef,
                 setup(
                     (c) => {
                         c.req.total_hours = quote_leeway;
@@ -287,8 +287,8 @@ describe(require('path').basename(__filename), function(){
     describe('notes', function(){
         it('should flag too many notes with no timesheets', function(done){
             let today = (new Date()).toISOString();
-            lwm.__apply_lint_rules.apply(
-                lwm,
+            rulef.apply(
+                rulef,
                 setup(
                     (c) => {
                         c.req.total_hours = 0;
@@ -317,8 +317,8 @@ describe(require('path').basename(__filename), function(){
         it('should guess when client is chasing forgotten tickets', function(done){
             let today = (new Date()).toISOString(),
                 last_week = (new Date(new Date().getTime()-14*24*60*60*1000)).toISOString();
-            lwm.__apply_lint_rules.apply(
-                lwm,
+            rulef.apply(
+                rulef,
                 setup(
                     (c) => {
                         c.req.total_hours = 0;
