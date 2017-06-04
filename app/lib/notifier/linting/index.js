@@ -26,7 +26,7 @@ function Linting(refs, __test_overrides){
     hooks.enable(this, _L('hooks'));
 }
 
-Linting.prototype.start = function(notifier){
+Linting.prototype.start = function(){
     const label = _L('interval');
 
     poller.add_hook('linting', (rows) => {
@@ -41,7 +41,7 @@ Linting.prototype.start = function(notifier){
 
     setInterval(
         () => { this.flush_messages(err => { log.error(label + err.stack); }) },
-        config.get('lint.flush_interval_minutes')*minute
+        config.get('lint.flush_interval_minutes')*60*1000
     );
 }
 
@@ -82,6 +82,14 @@ Linting.prototype.flush_messages = function(next){
     this.msg_queue = [];
 
     this.rocket.send(msg).about(key.join(',')).to(webhook).then(next);
+}
+
+function to_chat_handle(email){
+    let nicks = config.get('chat_nicks');
+    if (nicks[email]){
+        return nicks[email];
+    }
+    return email;
 }
 
 Linting.prototype.process_update = function(x, xs, next){

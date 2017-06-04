@@ -15,7 +15,7 @@ function TimesheetChecker(refs){
     this.__test_hook = refs.__test_hook || function(){};
 }
 
-TimesheetChecker.prototype.start = function(notifier){
+TimesheetChecker.prototype.start = function(){
     if (config.get('timesheets.check_on_startup')){
         setTimeout(() => { this.run() }, 5*1000);
     }

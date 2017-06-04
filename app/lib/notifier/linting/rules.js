@@ -283,11 +283,3 @@ exports.apply = function(context, next){
     return next(null, {rows: res});
 }
 
-function to_chat_handle(email){
-    let nicks = config.get('chat_nicks');
-    if (nicks[email]){
-        return nicks[email];
-    }
-    return email;
-}
-
