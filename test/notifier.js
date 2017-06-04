@@ -37,6 +37,72 @@ describe(require('path').basename(__filename), function(){
             notifier.run();
         });
     });
+    describe('linting', function(){
+        let type = require('../lib/notifier/linting');
+        it('with note by us and last status change by us', function(done){
+            let poll_rows = [
+                {request_id: 1234},
+                {request_id: 5678}
+            ];
+            let poller = {
+                add_hook: function(str, fn){
+                    process.nextTick(() => { fn(poll_rows); });
+                }
+            };
+            db.__test_override(
+                new MockDB([
+                    [null, {rows: ['1234 req']}],
+                    [null, {rows: ['1234 alloc']}],
+                    [null, {rows: ['1234 quotes']}],
+                    [null, {rows: ['1234 tags']}],
+                    [null, {rows: ['1234 activity']}],
+                    [null, {rows: ['1234 parents']}],
+                    [null, {rows: ['5678 req']}],
+                    [null, {rows: ['5678 alloc']}],
+                    [null, {rows: ['5678 quotes']}],
+                    [null, {rows: ['5678 tags']}],
+                    [null, {rows: ['5678 activity']}],
+                    [null, {rows: ['5678 parents']}]
+                ])
+            );
+            let rules_result = [
+                {
+                    rows: [
+                        {warning: 'test warning 1'},
+                        {org: 'ABC co', wr: 1234, status: 'New', brief: 'description 1', to: ['Bob']}
+                    ]
+                },
+                {
+                    rows: [
+                        {warning: 'test warning 2'},
+                        {org: 'ABC co', wr: 5678, status: 'Allocated', brief: 'description 2'}
+                    ]
+                }
+            ];
+            let notifier = new type({
+                __test_overrides: {
+                    rules: {
+                        apply: function(context, next){
+                            next && next(null, rules_result.shift());
+                        }
+                    },
+                    poller: poller
+                }
+            });
+            notifier.start();
+            setTimeout(() => {
+                notifier.flush_messages((err, msg) => {
+                    should.not.exist(err);
+                    should.exist(msg);
+                    console.log(JSON.stringify(msg));
+                    (msg.text.match(/test warning 1/) !== null).should.equal(true);
+                    (msg.text.match(/test warning 2/) !== null).should.equal(true);
+                    should.not.exist(msg.channel);
+                    done();
+                });
+            }, 200);
+        });
+    });
     describe('updates', function(){
         let type = require('../lib/notifier/updates');
         it('with note by us and last status change by us', function(done){

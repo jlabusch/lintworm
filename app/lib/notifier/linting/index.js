@@ -4,7 +4,7 @@ var log     = require('../../log'),
     sql     = require('./sql'),
     hooks   = require('../../hook'),
     rules   = require('./rules'),
-    rocket  = require('../rocket'),
+    rocket  = require('../../rocket'),
     format  = rocket.format,
     poller  = require('../../wrms_polling'),
     webhook = config.get('rocketchat.lint');
@@ -15,12 +15,17 @@ function _L(f){
     return require('path').basename(__filename) + '#' + f + ' - ';
 }
 
-function Linting(refs, __test_overrides){
+function Linting(refs){
     this.rocket = refs.rocket || rocket;
     this.msg_queue = [];
 
-    if (__test_overrides){
-        rules = __test_overrides.rules || rules;
+    if (refs.__test_overrides){
+        if (refs.__test_overrides.poller){
+            poller = refs.__test_overrides.poller;
+        }
+        if (refs.__test_overrides.rules){
+            rules = refs.__test_overrides.rules;
+        }
     }
 
     hooks.enable(this, _L('hooks'));
@@ -66,12 +71,12 @@ Linting.prototype.flush_messages = function(next){
 
     const lines = this.msg_queue.map(
             (r) => {
-                key.push(r.summary.wr);
-                const a = r.summary.to && r.summary.to.length
-                            ? ` - see ${r.summary.to.map(to_chat_handle).join(', ')}`
+                key.push(r.req.wr);
+                const a = r.req.to && r.req.to.length
+                            ? ` - see ${r.req.to.map(to_chat_handle).join(', ')}`
                             : '';
 
-                return  `${format.wr(r.summary.wr)} for ${format.org(r.summary.org)} ${format.status(r.req.status)} ` +
+                return  `${format.wr(r.req.wr)} for ${format.org(r.req.org)} ${format.status(r.req.status)} ` +
                         `${format.brief(r.req.brief)} _(${r.warnings.join(', ')}${a})_\n`;
             }
         ),
@@ -110,7 +115,7 @@ Linting.prototype.process_update = function(x, xs, next){
                             .map((r) => { return r.warning }),
             last_row = data.rows[data.rows.length - 1];
         if (warnings.length && !last_row.org.match(/Humanitarian/)){ // then there's something unusual
-            this.msg_queue.push({req: last_row, warnings: warnings, summary: last_row});
+            this.msg_queue.push({req: last_row, warnings: warnings});
         }
         process.nextTick(() => { this.process_update(xs.shift(), xs, next); });
     });
@@ -146,7 +151,7 @@ Linting.prototype.lint = async function(wr, next){
         return next(err);
     }
 
-    this.run_hooks(context);
+    this.call_hooks(context);
 
     rules.apply(context, next);
 }
