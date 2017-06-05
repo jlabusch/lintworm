@@ -17,7 +17,7 @@ function DB(driver){
 
     this.config.host = this.config.host || 'catwgtn-prod-pg92.db.catalyst.net.nz';
 
-    driver.on('error', function(err){
+    this.driver.on('error', function(err){
         log.error(_L('driver.error') + (err.stack || err));
         reconnect(self);
     });

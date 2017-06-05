@@ -3,7 +3,7 @@ class Script {
         return {
             content: {
                 text: request.content.text,
-                channel: request.context.channel
+                channel: request.content.channel
             }
         };
     }

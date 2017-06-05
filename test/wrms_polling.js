@@ -19,7 +19,7 @@ describe(require('path').basename(__filename), function(){
                     [null, {rows: rows}]
                 ])
             );
-            poller.set_latest_update(new Date(rows[0].newest));
+            poller.latest_update(new Date(rows[0].newest));
             poller.poll((err, data) => {
                 should.not.exist(err);
                 should.exist(data);
@@ -40,7 +40,7 @@ describe(require('path').basename(__filename), function(){
                     [null, {rows: rows}]
                 ])
             );
-            poller.set_latest_update(new Date(rows[0].newest));
+            poller.latest_update(new Date(rows[0].newest));
             let called_hook = false;
             poller.add_hook('test hook', (data_rows) => {
                 called_hook = true;
@@ -91,7 +91,7 @@ describe(require('path').basename(__filename), function(){
                     [null, {rows: rows}]
                 ])
             );
-            poller.set_latest_update(new Date(rows[0].newest));
+            poller.latest_update(new Date(rows[0].newest));
             let called_hook_1 = false,
                 called_hook_2 = false;
             let n = rows.length;

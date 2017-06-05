@@ -102,6 +102,7 @@ function __send(key, msg, uri, channel, next){
                     next(null, obj);
                 }
             });
+        log.trace(label + `Sending ${JSON.stringify(obj)} to ${uri}`);
         req.on('error', (e) => {
             log.error(label + e);
             next(e);

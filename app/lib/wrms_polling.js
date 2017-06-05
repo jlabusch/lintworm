@@ -30,8 +30,11 @@ Poller.prototype.start = function(){
     setInterval(() => { this.poll() }, config.get('server.wrms_poll_interval_seconds')*1000);
 }
 
-Poller.prototype.set_latest_update = function(d){
-    this.__latest_update = d;
+Poller.prototype.latest_update = function(d){
+    if (d){
+        this.__latest_update = d;
+    }
+    return this.__latest_update;
 }
 
 // FIXME: shouldn't use both > and < date comparisons (use >=)
@@ -92,10 +95,10 @@ Poller.prototype.poll = function(next){
                     }
                     this.call_hooks(data.rows);
                 }
-                next(null, data);
+                next && next(null, data);
             },
             (err) => {
-                next(err);
+                next && next(err);
             }
         );
 }

@@ -47,6 +47,9 @@ describe(require('path').basename(__filename), function(){
             let poller = {
                 add_hook: function(str, fn){
                     process.nextTick(() => { fn(poll_rows); });
+                },
+                latest_update: function(x){
+                    return x || new Date();
                 }
             };
             db.__test_override(

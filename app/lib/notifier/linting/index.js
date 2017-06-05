@@ -19,6 +19,8 @@ function Linting(refs){
     this.rocket = refs.rocket || rocket;
     this.msg_queue = [];
 
+    this.__latest_update = undefined; // copied from poller.latest_update()
+
     if (refs.__test_overrides){
         if (refs.__test_overrides.poller){
             poller = refs.__test_overrides.poller;
@@ -45,13 +47,15 @@ Linting.prototype.start = function(){
     });
 
     setInterval(
-        () => { this.flush_messages(err => { log.error(label + err.stack); }) },
+        () => { this.flush_messages(err => { if (err){ log.error(label + err.stack); } }) },
         config.get('lint.flush_interval_minutes')*60*1000
     );
 }
 
 Linting.prototype.gather_messages = function(rows, next){
     log.debug(_L('gather_messages') + `processing ${rows.length} rows...`);
+    // Copy latest_update() so it's consistent for all updates in this batch
+    this.__latest_update = poller.latest_update();
     this.process_update(rows.shift(), rows, next);
 }
 
@@ -143,7 +147,7 @@ Linting.prototype.lint = async function(wr, next){
         alloc:   await dbi.query('lint.alloc',   sql.lint_alloc,   [wr]).catch(efn),
         quote:   await dbi.query('lint.quotes',  sql.lint_quote,   [wr]).catch(efn),
         tags:    await dbi.query('lint.tags',    sql.lint_tag,     [wr]).catch(efn),
-        activity:await dbi.query('lint.activity',sql.lint_activity,[wr, this.latest_update]).catch(efn),
+        activity:await dbi.query('lint.activity',sql.lint_activity,[wr, this.__latest_update]).catch(efn),
         parents: await dbi.query('lint.parents', sql.lint_parent,  [wr]).catch(efn)
     };
 
