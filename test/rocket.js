@@ -1,11 +1,14 @@
 var assert  = require('assert'),
     sa      = require('superagent'),
     rocket  = require('../lib/rocket'),
-    config  = require('config'),
+    config  = require('./lib/config'),
     wr_uri  = config.get('server.wrms_uri'),
     should  = require('should');
 
 describe(require('path').basename(__filename), function(){
+    rocket.__test_override_config(config);
+    config.set('rocketchat.firehose', null); // default channel
+
     describe('format', function(){
         it('should abbreviate org name', function(){
             rocket.format.wr(1234).should.equal('`WR #1234` ' + wr_uri + '/1234');
@@ -51,6 +54,15 @@ describe(require('path').basename(__filename), function(){
             rocket.send('blah blah').about(123).to(null).then((err, result) => {
                 should.not.exist(err);
                 should.not.exist(result);
+                done();
+            });
+        });
+        it('should trim sent messages', function(done){
+            config.set('rocketchat.dedup_window_hours', 0);
+            rocket.trim_sent_messages(new Date().getTime());
+            rocket.send('bloo bloo').about(123).to(null).then((err, result) => {
+                should.not.exist(err);
+                should.exist(result);
                 done();
             });
         });

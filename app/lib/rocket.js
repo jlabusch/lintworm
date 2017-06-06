@@ -11,6 +11,26 @@ function _L(f){
 
 var sent_messages = {};
 
+const hourly = 60*60*1000;
+
+function trim_sent_messages(){
+    const too_old = (new Date()).getTime() - config.get('rocketchat.dedup_window_hours')*hourly;
+
+    let n = 0;
+
+    Object.keys(sent_messages)
+        .filter(key => { return sent_messages[key].getTime() < too_old })
+        .forEach(key => { ++n; delete sent_messages[key] });
+
+    log.debug(_L('trim_sent_messages') + `removed ${n} old messages`);
+
+    return n;
+}
+
+exports.trim_sent_messages = trim_sent_messages;
+
+setInterval(trim_sent_messages, hourly);
+
 function to_org_abbrev(o){
     let acronym = o.match(/([A-Z]{3}[A-Z]*)/);
     if (acronym){
@@ -24,6 +44,7 @@ function to_org_abbrev(o){
 }
 
 exports.__test_override_https = function(x){ https = x; }
+exports.__test_override_config = function(x){ config = x; }
 
 exports.format = {
     wr: (n) => { return `\`WR #${n}\` ${wr_uri}/${n}` },
@@ -40,7 +61,7 @@ exports.format = {
 //  - rocket.send(msg)                      // key=msg
 exports.send = function(msg){
     let key = msg,
-        uri = config.get('rocketchat.lint'),
+        uri = config.get('rocketchat.firehose'),
         channel = undefined,
         next = function(){};
     process.nextTick(() => { __send(key, msg, uri, channel, next); });

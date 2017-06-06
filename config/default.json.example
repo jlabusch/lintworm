@@ -7,6 +7,7 @@
         "port": 5432
     },
     "rocketchat": {
+        "dedup_window_hours": 24,
         "lint": null,
         "update": null,
         "channels": {

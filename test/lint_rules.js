@@ -1,8 +1,9 @@
 var assert  = require('assert'),
-    config  = require('config'),
+    config  = require('./lib/config'),
     quote_leeway = config.get('lint.hours_before_quote_required'),
     overrun_leeway = config.get('lint.acceptable_hours_budget_overrun'),
-    rulef = require('../lib/notifier/linting/rules').apply,
+    rules = require('../lib/notifier/linting/rules'),
+    rulef = rules.apply,
     should  = require('should');
 
 function setup(pre, post){
@@ -28,6 +29,8 @@ function setup(pre, post){
 }
 
 describe(require('path').basename(__filename), function(){
+    rules.__test_override_config(config);
+
     describe('sanity check', function(){
         it('should handle success', function(done){
             rulef.apply(
@@ -49,6 +52,8 @@ describe(require('path').basename(__filename), function(){
         });
     });
     describe('allocation rules', function(){
+        config.set('lint.check_unallocated', true);
+
         it('shouldn\'t flag unallocated for Finished WRs', function(done){
             rulef.apply(
                 rulef,
@@ -68,7 +73,7 @@ describe(require('path').basename(__filename), function(){
                 )
             );
         });
-        it.skip('should flag unallocated in general', function(done){
+        it('should flag unallocated in general', function(done){
             rulef.apply(
                 rulef,
                 setup(
@@ -178,12 +183,14 @@ describe(require('path').basename(__filename), function(){
                         should.not.exist(err);
                         should.exist(data);
                         should.exist(data.rows);
-                        data.rows.length.should.equal(2);
+                        data.rows.length.should.equal(3);
                         should.exist(data.rows[0].warning);
-                        should.exist(data.rows[0].warning.match(/over budget/));
-                        should.exist(data.rows[1].wr);
-                        should.exist(data.rows[1].msg);
-                        should.exist(data.rows[1].msg.match(/^1 warning/));
+                        should.exist(data.rows[0].warning.match(/allocated/));
+                        should.exist(data.rows[1].warning);
+                        should.exist(data.rows[1].warning.match(/over budget/));
+                        should.exist(data.rows[2].wr);
+                        should.exist(data.rows[2].msg);
+                        should.exist(data.rows[2].msg.match(/^2 warnings/));
                         done();
                     }
                 )

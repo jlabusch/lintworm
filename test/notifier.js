@@ -1,11 +1,17 @@
 var assert  = require('assert'),
     MockDB  = require('./lib/mock_db').type,
     rocket  = require('../lib/rocket'),
+    config  = require('./lib/config'),
     db      = require('../lib/db'),
     sa      = require('superagent'),
     should  = require('should');
 
 describe(require('path').basename(__filename), function(){
+
+    config.set('rocketchat.firehose', null);
+    config.set('rocketchat.lint', null);
+    config.set('rocketchat.update', null);
+    config.set('rocketchat.timesheet', null);
 
     rocket.__test_override_https({
         request: function(o, next){
@@ -111,6 +117,8 @@ describe(require('path').basename(__filename), function(){
     });
     describe('updates', function(){
         let type = require('../lib/notifier/updates');
+        config.set('updates.client_only', true);
+
         it('with note by us and last status change by us', function(done){
             let sent = false;
             let notifier = new type({

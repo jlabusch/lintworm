@@ -11,12 +11,15 @@ function _L(f){
 
 'use strict'
 
+exports.__test_override_config = function(c){ config = c }
+
 function contains_row_data(x){
     return x && x.rows && x.rows.length > 0;
 }
 
 function unallocated(context){
-    return contains_row_data(context.alloc) === false &&
+    return config.get('lint.check_unallocated') &&
+        contains_row_data(context.alloc) === false &&
         ['Finished', 'Cancelled'].indexOf(context.req.status) < 0;
 }
 
@@ -193,10 +196,9 @@ exports.apply = function(context, next){
     let res = [],
         author = [];
 
-    // if (unallocated(context)){
-    //     res.push({warning: "nobody allocated", score: -10});
-    // }else
-    if (multiple_allocations(context)){
+    if (unallocated(context)){
+        res.push({warning: "nobody allocated", score: -10});
+    }else if (multiple_allocations(context)){
         res.push({warning: "over-allocated", score: -5});
     }
 
