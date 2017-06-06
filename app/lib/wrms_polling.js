@@ -21,6 +21,7 @@ function Poller(){
     hooks.enable(this, _L('hooks'));
 
     this.__latest_update = new Date(today - config.get('lint.rewind_on_startup')*days);
+    this.__previous_update = this.__latest_update;
 }
 
 Poller.prototype.start = function(){
@@ -30,12 +31,18 @@ Poller.prototype.start = function(){
     setInterval(() => { this.poll() }, config.get('server.wrms_poll_interval_seconds')*1000);
 }
 
-Poller.prototype.latest_update = function(d){
-    if (d){
-        this.__latest_update = d;
+function get_set_update(m){
+    return function(x){
+        if (x){
+            this[m] = x;
+        }
+        return this[m];
     }
-    return this.__latest_update;
 }
+
+Poller.prototype.latest_update = get_set_update('__latest_update');
+
+Poller.prototype.previous_update = get_set_update('__previous_update');
 
 // FIXME: shouldn't use both > and < date comparisons (use >=)
 const poll_sql =
@@ -89,6 +96,8 @@ Poller.prototype.poll = function(next){
         .then(
             (data) => {
                 if (data && data.rows && data.rows.length > 0){
+                    this.__previous_update = this.__latest_update;
+
                     let newest = new Date(data.rows[data.rows.length-1].newest);
                     if (this.__latest_update < newest){
                         this.__latest_update = newest;

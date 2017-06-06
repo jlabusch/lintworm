@@ -19,8 +19,6 @@ function Linting(refs){
     this.rocket = refs.rocket || rocket;
     this.msg_queue = [];
 
-    this.__latest_update = undefined; // copied from poller.latest_update()
-
     if (refs.__test_overrides){
         if (refs.__test_overrides.poller){
             poller = refs.__test_overrides.poller;
@@ -54,9 +52,7 @@ Linting.prototype.start = function(){
 
 Linting.prototype.gather_messages = function(rows, next){
     log.debug(_L('gather_messages') + `processing ${rows.length} rows...`);
-    // Copy latest_update() so it's consistent for all updates in this batch
-    this.__latest_update = poller.latest_update();
-    this.process_update(rows.shift(), rows, next);
+    this.process_update(rows.shift(), rows, poller.previous_update(), next);
 }
 
 Linting.prototype.run = Linting.prototype.gather_messages;
@@ -101,14 +97,14 @@ function to_chat_handle(email){
     return email;
 }
 
-Linting.prototype.process_update = function(x, xs, next){
+Linting.prototype.process_update = function(x, xs, fresh_after, next){
     if (!x){
         next && next();
         return;
     }
     const label = _L('process_update');
     log.info(label + 'WR# ' + x.request_id);
-    this.lint(x.request_id, (err, data) => {
+    this.lint(x.request_id, fresh_after, (err, data) => {
         if (err){
             next && next(err);
             return;
@@ -121,11 +117,11 @@ Linting.prototype.process_update = function(x, xs, next){
         if (warnings.length && !last_row.org.match(/Humanitarian/)){ // then there's something unusual
             this.msg_queue.push({req: last_row, warnings: warnings});
         }
-        process.nextTick(() => { this.process_update(xs.shift(), xs, next); });
+        process.nextTick(() => { this.process_update(xs.shift(), xs, fresh_after, next); });
     });
 }
 
-Linting.prototype.lint = async function(wr, next){
+Linting.prototype.lint = async function(wr, fresh_after, next){
     const label = _L('lint');
 
     log.debug(label + wr);
@@ -147,7 +143,7 @@ Linting.prototype.lint = async function(wr, next){
         alloc:   await dbi.query('lint.alloc',   sql.lint_alloc,   [wr]).catch(efn),
         quote:   await dbi.query('lint.quotes',  sql.lint_quote,   [wr]).catch(efn),
         tags:    await dbi.query('lint.tags',    sql.lint_tag,     [wr]).catch(efn),
-        activity:await dbi.query('lint.activity',sql.lint_activity,[wr, this.__latest_update]).catch(efn),
+        activity:await dbi.query('lint.activity',sql.lint_activity,[wr, fresh_after]).catch(efn),
         parents: await dbi.query('lint.parents', sql.lint_parent,  [wr]).catch(efn)
     };
 

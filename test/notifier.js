@@ -50,6 +50,9 @@ describe(require('path').basename(__filename), function(){
                 },
                 latest_update: function(x){
                     return x || new Date();
+                },
+                previous_update: function(x){
+                    return x || new Date();
                 }
             };
             db.__test_override(
