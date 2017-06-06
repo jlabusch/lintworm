@@ -43,6 +43,15 @@ function check_timesheets(next){
         );
 }
 
+const miagi = [
+    "It’s ok to lose to opponent. It’s never okay to lose to fear",
+    "You trust the quality of what you know, not quantity",
+    "Never put passion in front of principle, even if you win, you’ll lose",
+    "Never trust spiritual leader who cannot dance",
+    "Daniel-San, lie become truth only if person wanna believe it",
+    "Wax on, wax off. Wax on, wax off"
+];
+
 TimesheetChecker.prototype.run = function(){
     let label = _L('run');
     check_timesheets((err, data) => {
@@ -53,7 +62,8 @@ TimesheetChecker.prototype.run = function(){
         if (data && data.rows && data.rows.length > 0){
             let too_low = data.rows.filter((r) => { return r.worked < 70; });
             if (too_low.length > 0){
-                let msg = "Timesheets to chase: \n```" +
+                let quote = (Math.random() * miagi.length)|0;
+                let msg = `${miagi[quote]}: \n` + "```" +
                             too_low.map((r) => {
                                 return r.fullname + ' '.repeat(30 - r.fullname.length) + (r.worked|0) + '%';
                             }).join('\n')
