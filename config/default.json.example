@@ -9,6 +9,7 @@
     "rocketchat": {
         "dedup_window_hours": 24,
         "lint": null,
+        "firehose": null,
         "update": null,
         "channels": {
             "Customer": "#foo"
@@ -17,20 +18,27 @@
     },
     "server": {
         "port": 80,
-        "wrms_poll_on_startup": true,
-        "wrms_poll_interval_seconds": 60,
+        "email_domain_like": "%catalyst-eu.net",
         "wrms_uri": "https://wrms.catalyst.net.nz"
     },
+    "wrms_poll": {
+        "on_startup": true,
+        "interval_seconds": 60,
+        "ignore_org_id": [37, 1098, 1185, 1137, 1615],
+        "ignore_org_if_contains_system": [18, 164, 1562],
+        "ignore_updates_for_system": [2881, 2657, 2758]
+    },
     "timesheets": {
-        "check_interval_minutes": 60,
+        "check_interval_minutes": 240,
         "check_on_startup": false
     },
     "updates": {
         "client_only": true
     },
     "lint": {
-        "flush_interval_minutes": 15,
+        "flush_interval_minutes": 5,
         "rewind_on_startup": 0,
+        "check_unallocated": false,
         "max_allocations": 2,
         "hours_before_quote_required": 1,
         "acceptable_hours_budget_overrun": 3
@@ -40,6 +48,6 @@
         "level": "warn"
     },
     "chat_nicks": {
-        "foo@example.com": "@Bob"
+        "bob@catalyst-eu.net": "@bob"
     }
 }

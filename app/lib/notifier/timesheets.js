@@ -28,7 +28,7 @@ const timesheet_sql = `
                SUM(rt.work_quantity)/40*100 AS worked
         FROM request_timesheet rt
         JOIN usr u ON u.user_no=rt.work_by_id
-        WHERE u.email LIKE '%catalyst-eu.net' AND
+        WHERE u.email LIKE '${config.get('server.email_domain_like')}' AND
               rt.work_on >= current_date - interval '10 days' AND
               rt.work_on < current_date - interval '3 days'
         GROUP by u.fullname,u.email

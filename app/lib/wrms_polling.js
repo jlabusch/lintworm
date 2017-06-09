@@ -11,10 +11,6 @@ function _L(f){
     return require('path').basename(__filename) + '#' + f + ' - ';
 }
 
-function tidy(s){
-    return s[0].replace(/\s+/g, ' ');
-}
-
 function Poller(){
     const today = new Date().getTime();
 
@@ -25,10 +21,10 @@ function Poller(){
 }
 
 Poller.prototype.start = function(){
-    if (config.get('server.wrms_poll_on_startup')){
+    if (config.get('wrms_poll.on_startup')){
         setTimeout(() => { this.poll() }, 5*1000);
     }
-    setInterval(() => { this.poll() }, config.get('server.wrms_poll_interval_seconds')*1000);
+    setInterval(() => { this.poll() }, config.get('wrms_poll.interval_seconds')*1000);
 }
 
 function get_set_update(m){
@@ -46,7 +42,7 @@ Poller.prototype.previous_update = get_set_update('__previous_update');
 
 // FIXME: shouldn't use both > and < date comparisons (use >=)
 const poll_sql =
-        tidy`SELECT
+        `SELECT
                 r.request_id,
                 (
                     SELECT MAX(rasub.date)
@@ -67,7 +63,7 @@ const poll_sql =
             JOIN usr ru ON ru.user_no=r.requester_id
             JOIN organisation o ON o.org_code=ru.org_code
             WHERE ra.date > $1 AND ra.date < $2 AND
-                r.system_id NOT IN (2881,2657,2758) AND
+                r.system_id NOT IN (${config.get('wrms_poll.ignore_updates_for_system').join(',')}) AND
                 o.org_code in (
                     SELECT o.org_code
                     FROM organisation o
@@ -75,11 +71,12 @@ const poll_sql =
                     JOIN work_system s ON s.system_id=os.system_id
                     JOIN system_usr su ON su.system_id=os.system_id
                     JOIN usr u ON u.user_no=su.user_no
-                    WHERE o.org_code NOT IN (37,1098,1185,1137) AND
-                        s.system_id NOT IN (18,164) AND
+                    WHERE o.org_code NOT IN (${config.get('wrms_poll.ignore_org_id').join(',')}) AND
+                        s.system_id NOT IN (${config.get('wrms_poll.ignore_org_if_contains_system').join(',')}) AND
                         u.user_no > 4000 AND
-                        u.email LIKE '%catalyst-eu.net' )
-            GROUP BY r.request_id,newest ORDER BY newest ASC`;
+                        u.email LIKE '${config.get('server.email_domain_like')}' )
+            GROUP BY r.request_id,newest ORDER BY newest ASC`
+            .replace(/\s+/g, ' ');
 
 // Returns the list of WRs with updates since this.__latest_update
 // (defaulting to ${lint.rewind_on_startup} days ago).
