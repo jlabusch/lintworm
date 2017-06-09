@@ -23,15 +23,21 @@ TimesheetChecker.prototype.start = function(){
 }
 
 const timesheet_sql = `
-        SELECT u.fullname,
-               u.email,
-               SUM(rt.work_quantity)/40*100 AS worked
-        FROM request_timesheet rt
-        JOIN usr u ON u.user_no=rt.work_by_id
-        WHERE u.email LIKE '${config.get('server.email_domain_like')}' AND
-              rt.work_on >= current_date - interval '10 days' AND
-              rt.work_on < current_date - interval '3 days'
-        GROUP by u.fullname,u.email
+        SELECT  u.fullname,
+                u.email,
+                (
+                    SELECT COALESCE(SUM(rt.work_quantity),0)
+                    FROM request_timesheet rt
+                    WHERE rt.work_by_id=u.user_no AND
+                          rt.work_on >= current_date - interval '10 days' AND
+                          rt.work_on < current_date - interval '3 days'
+                )/40*100 AS worked
+        FROM usr u
+        WHERE u.active AND
+              u.email LIKE '${config.get('server.email_domain_like')}' AND
+              u.username NOT LIKE 'catadmin%' AND
+              u.username NOT LIKE 'sysadmin%' AND
+              u.user_no NOT IN (${config.get('timesheets.exclude_users').join(',')})
         ORDER by u.fullname`
         .replace(/\s+/g, ' ');
 

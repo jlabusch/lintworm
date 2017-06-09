@@ -42,6 +42,23 @@ describe(require('path').basename(__filename), function(){
             });
             notifier.run();
         });
+        it('should show 0%', function(done){
+            db.__test_override(
+                new MockDB([
+                    [null, {rows: [
+                        {fullname: 'Bob', worked: 0}
+                    ]}]
+                ])
+            );
+            let notifier = new type({
+                __test_hook: function(err, msg){
+                    should.exist(msg);
+                    should.exist(msg.text.match(/Bob\s+0%/));
+                    done();
+                }
+            });
+            notifier.run();
+        });
     });
     describe('linting', function(){
         let type = require('../lib/notifier/linting');

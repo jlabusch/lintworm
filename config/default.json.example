@@ -30,7 +30,8 @@
     },
     "timesheets": {
         "check_interval_minutes": 240,
-        "check_on_startup": false
+        "check_on_startup": false,
+        "exclude_users": [1794, 4041]
     },
     "updates": {
         "client_only": true
