@@ -2,7 +2,7 @@ var //config  = require('config'),
     restify = require('restify'),
     log     = require('./log'),
     pkg     = require('../package.json'),
-    linter  = require('./notifier/linting');
+    notifier= require('./notifier').notifier;
 
 const GENERIC_ERROR = {error: 'Service interruption - please try again later'};
 
@@ -51,42 +51,18 @@ setup('get', '/ping', (req, res, next) => {
     return next();
 });
 
-function query_response(label, res, filter, next){
-    return function(err, data){
-        if (err){
-            log.error(label + (err.stack || err));
-            res.send(500, GENERIC_ERROR);
+setup('get', '/check_timesheets', (req, res, next) => {
+    notifier.timesheets.__test_hook = function(err, data){
+        notifier.timesheets.__test_hook = undefined;
+        if (data){
+            // also sent to rocketchat as a side effect
+            res.json(data);
         }else{
-            filter = filter || function(x){ return x };
-            res.json(filter(data.rows));
+            log.error(_L('check_timesheets') + err);
+            res.json({error: true});
         }
         next(false);
     }
-}
-
-setup('get', '/check_timesheets', (req, res, next) => {
-    require('./notifier').notifier.run('timesheets');
-    res.json({OK: true});
-    next(false);
-});
-
-setup('get', '/lint/:wr', (req, res, next) => {
-    const wr = parseInt(req.params.wr),
-        label = _L('lint');
-    if (isNaN(wr)){
-        log.warn(label + "Invalid WR number");
-        res.send(400, {error: "Invalid WR number"});
-        next(false);
-        return;
-    }
-    linter.lint(
-        wr,
-        query_response(
-            label,
-            res,
-            null,
-            next
-        )
-    );
+    notifier.run('timesheets');
 });
 

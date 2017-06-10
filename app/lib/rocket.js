@@ -92,7 +92,7 @@ function __send(key, msg, uri, channel, next){
     const label = _L('send');
     if (sent_messages[key]){
         log.info(label + `Skipping repeat of ${key} [last sent ${sent_messages[key]}]`);
-        next(null, null);
+        next && next(null, null);
         return;
     }
     sent_messages[key] = new Date();
@@ -117,23 +117,23 @@ function __send(key, msg, uri, channel, next){
                 if (res.statusCode !== 200){
                     let e = label + `[${key}] ${msg} => ${res.statusCode}`;
                     log.error(e);
-                    next(new Error(e));
+                    next && next(new Error(e));
                 }else{
                     log.trace(label + `[${key}] ${msg} => ${res.statusCode}`);
-                    next(null, obj);
+                    next && next(null, obj);
                 }
             });
         log.trace(label + `Sending ${JSON.stringify(obj)} to ${uri}`);
         req.on('error', (e) => {
             log.error(label + e);
-            next(e);
+            next && next(e);
         });
         req.write(JSON.stringify(obj));
         req.end();
     }else{
         log.debug(label + `[${key}] ${JSON.stringify(obj)} => not sent, rocketchat hook not set`);
         obj.missing_uri = true;
-        next(null, obj);
+        next && next(null, obj);
     }
 }
 

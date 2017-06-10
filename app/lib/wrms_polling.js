@@ -50,22 +50,13 @@ const poll_sql =
                     WHERE rasub.request_id=r.request_id
                 ) as newest
             FROM request r
-            JOIN work_system sys ON r.system_id=sys.system_id
             JOIN request_activity ra ON ra.request_id=r.request_id
-            INNER JOIN lookup_code stat ON stat.source_table='request' AND
-                        stat.lookup_code=r.last_status
-            INNER JOIN lookup_code urg ON urg.source_table='request' AND
-                        urg.source_field='urgency' AND
-                        urg.lookup_code=cast(r.urgency as text)
-            INNER JOIN lookup_code imp ON imp.source_table='request' AND
-                        imp.source_field='importance' AND
-                        imp.lookup_code=cast(r.importance as text)
             JOIN usr ru ON ru.user_no=r.requester_id
             JOIN organisation o ON o.org_code=ru.org_code
             WHERE ra.date > $1 AND ra.date < $2 AND
                 r.system_id NOT IN (${config.get('wrms_poll.ignore_updates_for_system').join(',')}) AND
                 o.org_code in (
-                    SELECT o.org_code
+                    SELECT DISTINCT o.org_code
                     FROM organisation o
                     JOIN org_system os ON os.org_code=o.org_code
                     JOIN work_system s ON s.system_id=os.system_id
@@ -74,7 +65,9 @@ const poll_sql =
                     WHERE o.org_code NOT IN (${config.get('wrms_poll.ignore_org_id').join(',')}) AND
                         s.system_id NOT IN (${config.get('wrms_poll.ignore_org_if_contains_system').join(',')}) AND
                         u.user_no > 4000 AND
-                        u.email LIKE '${config.get('server.email_domain_like')}' )
+                        u.email LIKE '${config.get('server.email_domain_like')}'
+                    ORDER BY o.org_code
+                )
             GROUP BY r.request_id,newest ORDER BY newest ASC`
             .replace(/\s+/g, ' ');
 

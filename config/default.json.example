@@ -33,6 +33,16 @@
         "check_on_startup": false,
         "exclude_users": [1794, 4041]
     },
+    "response_times": {
+        "urgency_hours": {
+            "'Yesterday'": 2,
+            "As Soon As Possible": 4,
+            "Sometime soon": 8,
+            "Anytime": 16
+        },
+        "warn_at_X_mins_left": 30,
+        "chase_overdue_every_X_mins": 30
+    },
     "updates": {
         "client_only": true
     },

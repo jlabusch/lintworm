@@ -7,6 +7,7 @@ exports.lint_req =
                 r.brief,
                 ru.fullname as requested_by,
                 o.org_name as org,
+                r.request_on as created_on,
                 sys.system_desc as system,
                 stat.lookup_desc as status,
                 urg.lookup_desc as urgency,
