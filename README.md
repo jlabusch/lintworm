@@ -29,8 +29,7 @@ Lintworm watches WRMS and mentions things we might want to react to.
  - We monkeypatch Bunyan to change the "simple" log format
  - The RocketChat incoming webhook script is `./rocketchat/incoming.js`
  - You can change the log level in `./config/default.json:log.level`
- - If you want to change the queries, see `./app/lib/lintworm.js`
- - To add new notifiers, take a look in `./app/lib/notifiers/*`. Use `Lintworm.add_hook` if you can, to avoid additional queries.
+ - To add new notifiers, take a look in `./app/lib/notifiers/*`. Use `app/lib/hook.js` if you can, to avoid additional queries.
  - To send test coverage reports to CodeClimate, add the following script to `package.json`:
 
 ```javascript
