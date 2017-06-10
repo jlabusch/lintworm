@@ -15,7 +15,8 @@ function _L(f){
 
 function ResponseTimer(refs){
     this.rocket = refs.rocket || rocket;
-    this.__test_hook = refs.__test_hook || function(){};
+    this.__test_hook = refs.__test_hook; // __test_hook !== undefined means we're in a unit test,
+                                         // so don't setTimeout()
 }
 
 ResponseTimer.prototype.start = function(notifier){
@@ -39,10 +40,8 @@ function lateness(urg, created_on){
     const now = new Date().getTime();
 
     let result = {
-        warn_at: warn_at,
         warn_in: warn_at - now,
         warn: now > warn_at,
-        due_at: due_at,
         due_in: due_at - now,
         overdue: now > due_at
     };
@@ -76,7 +75,6 @@ function notes_by_us(list){
             if (val.source === 'note' && our_email_domain(val.email)){
                 ++acc;
             }
-            log.trace(_L('notes_by_us') + acc + JSON.stringify(val));
             return acc;
         },
         0
@@ -93,11 +91,13 @@ ResponseTimer.prototype.check_lateness_and_set_timeout = function(data, req){
 
     if (n > 0){
         log.debug(label + `${req.request_id} has ${n} responses by us`);
+        this.__test_hook && this.__test_hook(null, {__have_responded: true});
         return;
     }
 
     if (!req.system.match(/(Hosting)|(Service.Level.Agreement)|(?:^|_|\b)SLA(?:$|_|\b)/)){
         log.info(label + "WR# " + req.request_id + ' ' + req.system + " isn't a Hosting or SLA system, skipping...");
+        this.__test_hook && this.__test_hook(null, {__not_sla: true});
         return;
     }
 
@@ -106,6 +106,7 @@ ResponseTimer.prototype.check_lateness_and_set_timeout = function(data, req){
 
     if (!state){
         log.debug(label + "urgency time contraints are null, this check doesn't apply");
+        this.__test_hook && this.__test_hook(null, {__no_urgency: true});
         return;
     }
 
@@ -131,6 +132,13 @@ ResponseTimer.prototype.check_lateness_and_set_timeout = function(data, req){
         let s = `${org} ${format.wr(req.request_id)} (${req.urgency}) ${msg}\n`;
         log.info(label + s);
         this.rocket.send(s).to(webhook).channel(chan).then(this.__test_hook);
+    }else{
+        this.__test_hook && this.__test_hook(null, {__ok: true});
+    }
+
+    if (this.__test_hook){
+        log.trace(label + 'in unit test, not calling setTimeout()');
+        return;
     }
 
     setTimeout(

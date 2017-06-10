@@ -90,7 +90,7 @@ Linting.prototype.flush_messages = function(next){
 }
 
 function to_chat_handle(email){
-    let nicks = config.get('chat_nicks');
+    let nicks = config.get('rocketchat.nicks');
     if (nicks[email]){
         return nicks[email];
     }

@@ -25,6 +25,118 @@ describe(require('path').basename(__filename), function(){
         }
     });
 
+    describe('response_times', function(){
+        let type = require('../lib/notifier/response_times');
+        db.__test_override(
+            new MockDB([])
+        );
+        function mk_context(){
+            return {
+                activity: {
+                    rows: [
+                        {fresh: true, email: 'a@b.c', fullname: 'Bob', source: 'status', status: 'New'}
+                    ]
+                },
+                wr: 1234,
+                req: {
+                    request_id: 1234,
+                    system: 'Service Level Agreement',
+                    urgency: 'As Soon As Possible',
+                    created_on: (new Date()).toISOString(),
+                    org: 'ABC corp'
+                }
+            };
+        }
+        it('should be silent when WR is raised', function(done){
+            let notifier = new type({
+                __test_hook: function(err, msg){
+                    should.not.exist(err);
+                    should.exist(msg);
+                    msg.__ok.should.equal(true);
+                    done();
+                }
+            });
+            notifier.run(mk_context());
+        });
+        it('should be silent for non-SLA WRs', function(done){
+            let notifier = new type({
+                __test_hook: function(err, msg){
+                    should.not.exist(err);
+                    should.exist(msg);
+                    msg.__not_sla.should.equal(true);
+                    done();
+                }
+            });
+            let context = mk_context();
+            context.req.system = 'Cheese';
+            notifier.run(context);
+        });
+        it('should be silent for non-time constrained WRs', function(done){
+            let notifier = new type({
+                __test_hook: function(err, msg){
+                    should.not.exist(err);
+                    should.exist(msg);
+                    msg.__no_urgency.should.equal(true);
+                    done();
+                }
+            });
+            let context = mk_context();
+            context.req.urgency = 'Before Specific Date';
+            notifier.run(context);
+        });
+        it('should be silent if we\'ve responded', function(done){
+            let notifier = new type({
+                __test_hook: function(err, msg){
+                    should.not.exist(err);
+                    should.exist(msg);
+                    msg.__have_responded.should.equal(true);
+                    done();
+                }
+            });
+            let context = mk_context();
+            context.activity.rows.push(
+                {fresh: true, email: 'fred@catalyst-eu.net', fullname: 'Fred', source: 'note'}
+            );
+            notifier.run(context);
+        });
+        it('should warn if we\'re nearing the limit', function(done){
+            let notifier = new type({
+                __test_hook: function(err, msg){
+                    should.not.exist(err);
+                    should.exist(msg);
+                    should.exist(msg.text.match(/needs to be responded to/));
+                    done();
+                }
+            });
+            let context = mk_context();
+            context.req.urgency = "'Yesterday'";
+            let now = (new Date()).getTime(),
+                mins = 60*1000,
+                hours = 60*mins,
+                max = config.get('response_times.urgency_hours')[context.req.urgency]*hours,
+                warn = config.get('response_times.warn_at_X_mins_left')*mins;
+            context.req.created_on = now - max + warn - 5*mins;
+            notifier.run(context);
+        });
+        it('should warn if we\'re over the limit', function(done){
+            let notifier = new type({
+                __test_hook: function(err, msg){
+                    should.not.exist(err);
+                    should.exist(msg);
+                    should.exist(msg.text.match(/is past due/));
+                    done();
+                }
+            });
+            let context = mk_context();
+            context.req.urgency = "'Yesterday'";
+            let now = (new Date()).getTime(),
+                mins = 60*1000,
+                hours = 60*mins,
+                max = config.get('response_times.urgency_hours')[context.req.urgency]*hours;
+            context.req.created_on = now - max - 5*mins;
+            notifier.run(context);
+        });
+    });
     describe('timesheets', function(){
         let type = require('../lib/notifier/timesheets');
         it('should flag < 70%', function(done){
