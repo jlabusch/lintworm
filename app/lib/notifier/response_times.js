@@ -71,7 +71,8 @@ function note_checker(wr, next){
 }
 
 function notes_by_us(list){
-    return list.reduce((acc, val) => {
+    return list.reduce(
+        (acc, val) => {
             if (val.source === 'note' && our_email_domain(val.email)){
                 ++acc;
             }
