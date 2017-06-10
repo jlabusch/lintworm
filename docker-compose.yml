@@ -12,7 +12,7 @@ services:
             - start
         volumes:
             - ./app/lib:/opt/lib:ro
-            - ./config:/opt/config:ro
+            - ./app/config:/opt/config:ro
             - ./app/index.js:/opt/index.js:ro
             - ./app/.eslintrc.json:/opt/.eslintrc.json:ro
 
