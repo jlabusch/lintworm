@@ -2,9 +2,7 @@ FROM node:7.8
 
 WORKDIR /opt
 
-COPY *.json *.monkeypatch index.js ./
-COPY lib ./lib/
-COPY config ./config/
+COPY *.json *.monkeypatch ./
 
 RUN npm install
 
