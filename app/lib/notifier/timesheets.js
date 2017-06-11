@@ -64,7 +64,8 @@ TimesheetChecker.prototype.run = function(){
     let label = _L('run');
     check_timesheets((err, data) => {
         if (err){
-            log.error(label + (err.stack || err));
+            log.error(label + err);
+            this.__test_hook && this.__test_hook(err);
             return;
         }
         if (data && data.rows && data.rows.length > 0){

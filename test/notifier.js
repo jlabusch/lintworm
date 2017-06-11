@@ -52,11 +52,13 @@ describe(require('path').basename(__filename), function(){
         }
         it('should be silent when WR is raised', function(done){
             let notifier = new type({
-                __test_hook: function(err, msg){
-                    should.not.exist(err);
-                    should.exist(msg);
-                    msg.__ok.should.equal(true);
-                    done();
+                __test_overrides: {
+                    hook: function(err, msg){
+                        should.not.exist(err);
+                        should.exist(msg);
+                        msg.__ok.should.equal(true);
+                        done();
+                    }
                 }
             });
             notifier.run(mk_context());
@@ -142,6 +144,18 @@ describe(require('path').basename(__filename), function(){
     });
     describe('timesheets', function(){
         let type = require('../lib/notifier/timesheets');
+        it('should handle errors', function(done){
+            db.__test_override(
+                new MockDB([])
+            );
+            let notifier = new type({
+                __test_hook: function(err, msg){
+                    should.exist(err);
+                    done();
+                }
+            });
+            notifier.run();
+        });
         it('should flag < 70%', function(done){
             db.__test_override(
                 new MockDB([
@@ -251,13 +265,42 @@ describe(require('path').basename(__filename), function(){
         let type = require('../lib/notifier/updates');
         config.set('updates.client_only', true);
 
+        it('with no notes and last status change by client', function(done){
+            let sent = false;
+            let notifier = new type({
+                __test_overrides: {
+                    hook: function(err, msg){
+                        sent = true;
+                    },
+                    config: config
+                }
+            });
+            notifier.run({
+                activity: {
+                    rows: [
+                        {fresh: true, email: 'a@b.c', fullname: 'Bob', source: 'status', status: 'New'},
+                    ]
+                },
+                wr: 1234,
+                req: {
+                    org: 'ABC corp'
+                }
+            });
+
+            setTimeout(function(){
+                sent.should.equal(true);
+                done();
+            }, 100);
+        });
         it('with note by us and last status change by us', function(done){
             let sent = false;
             let notifier = new type({
-                __test_hook: function(err, msg){
-                    sent = true;
-                },
-                __test_overrides: { config: config }
+                __test_overrides: {
+                    hook: function(err, msg){
+                        sent = true;
+                    },
+                    config: config
+                }
             });
             notifier.run({
                 activity: {
@@ -293,6 +336,29 @@ describe(require('path').basename(__filename), function(){
                         {fresh: true, email: 'a@b.c', fullname: 'Bob', source: 'status', status: 'New'},
                         {fresh: true, email: 'cindy@catalyst-eu.net', fullname: 'Cindy', source: 'status', status: 'Need info'},
                         {fresh: true, email: 'a@b.c', fullname: 'Bob', source: 'note', note: 'Here is info'}
+                    ]
+                },
+                wr: 1234,
+                req: {
+                    org: 'ABC corp'
+                }
+            });
+        });
+        it('with notes by both', function(done){
+            let notifier = new type({
+                __test_hook: function(err, msg){
+                    should.exist(msg);
+                    (msg.text.match(/Bob and Cindy have added notes/) !== null).should.equal(true);
+                    should.not.exist(msg.channel);
+                    done();
+                }
+            });
+            notifier.run({
+                activity: {
+                    rows: [
+                        {fresh: true, email: 'a@b.c', fullname: 'Bob', source: 'note', note: 'Here is info'},
+                        {fresh: true, email: 'cindy@catalyst-eu.net', fullname: 'Cindy', source: 'note', note: 'thanks'},
+                        {fresh: true, email: 'a@b.c', fullname: 'Bob', source: 'status', status: 'New'}
                     ]
                 },
                 wr: 1234,
