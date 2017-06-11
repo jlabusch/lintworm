@@ -3,7 +3,9 @@ var log     = require('../log'),
     our_email_domain = require('../our_email_domain'),
     rocket  = require('../rocket'),
     format  = rocket.format,
-    channels= config.get('rocketchat.channels'),
+    channels= config.get('updates.stick_to_default_channel')
+                ? {}
+                : config.get('rocketchat.channels'),
     persona = config.get('updates.persona'),
     muted   = config.get('updates.mute'),
     webhook = config.get('rocketchat.webhooks.' + persona);
@@ -128,7 +130,7 @@ Updater.prototype.run = function(context){
 
     if (msg){
         const org = format.org(context.req.org),
-            chan = channels[org]; // undefined is ok
+            chan = channels[org]; // undefined is ok. See also updates.stick_to_default_channel
         let s = `${org} ${format.wr(context.wr)}: ${msg}\n`;
         log.info(label + s);
         this.rocket.send(s).to(muted ? null : webhook).channel(chan).then(this.__test_hook);
