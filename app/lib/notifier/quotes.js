@@ -3,8 +3,10 @@ var log     = require('../log'),
     rocket  = require('../rocket'),
     format  = rocket.format,
     http    = require('http'),
-    sla_match=require('../sla_match'),
-    channels= config.get('rocketchat.channels'),
+    sla_or_hosting_match=require('../sla_match'),
+    channels= config.get('quotes.stick_to_default_channel')
+                ? {}
+                : config.get('rocketchat.channels'),
     persona = config.get('quotes.persona'),
     muted   = config.get('quotes.mute'),
     webhook = config.get('rocketchat.webhooks.' + persona);
@@ -110,15 +112,16 @@ Budgeter.prototype.run = function(context){
     if (!rows.find(i => { return i.fresh && i.source === 'quote' })){
         log.debug(label + 'no new quotes on WR# ' + context.req.request_id);
         this.__test_hook && this.__test_hook(null, {__no_quotes: true});
+        return;
     }
 
-    if (!sla_match(context.req.system)){
+    if (!sla_or_hosting_match(context.req.system)){
         log.info(label + "WR# " + context.req.request_id + ' ' + context.req.system + " isn't a Hosting or SLA system, skipping...");
         this.__test_hook && this.__test_hook(null, {__not_sla: true});
         return;
     }
 
-    log.trace(label + 'found a quote - pulling in client budget');
+    log.trace(label + 'found a quote for WR # ' + context.req.request_id + ' - pulling in client budget');
 
     // There's a theoretical timing hole here if someone else requests the budget
     // (priming the cache), and then a user adds a quote, and then we request the
@@ -141,20 +144,27 @@ Budgeter.prototype.run = function(context){
                 let data = '';
                 res.on('data', (chunk) => { data += chunk });
                 res.on('end', () => {
-                    let p = this.parse(data),
-                        msg =   `New quote added to ${format.wr(context.req.request_id)}`;
-                    log.fatal(label + JSON.stringify(p));
-
-                    if (p.summary.length){
-                        msg =   msg + '\n' +
-                                'In context:\n' +
-                                `> ${p.summary.join('\n> ')}\n` +
-                                `> ${p.quotes.join('\n> ')}\n`;
-                    }
-
                     const org = format.org(context.req.org),
                         chan = channels[org]; // undefined is ok
-                    this.rocket.send(msg).to(muted ? null : webhook).channel(chan).then(this.__test_hook);
+
+                    let p = this.parse(data),
+                        summary = '',
+                        msg =   `New quote added to ${org} ${format.wr(context.req.request_id)}`;
+
+                    // Note: SLA quotes belong only on SLA systems; Hosting quotes don't affect
+                    // the SLA budget report.
+                    if (p.summary.length > 0 && !context.req.system.match(/hosting/i)){
+                        summary = '\nIn context:\n' +
+                                    `> ${p.summary.join('\n> ')}\n` +
+                                    `> ${p.quotes.join('\n> ')}\n`;
+                    }
+
+                    this.rocket
+                        .send(msg + summary)
+                        .about(summary ? org + summary : msg)
+                        .to(muted ? null : webhook)
+                        .channel(chan)
+                        .then(this.__test_hook);
                 });
             }
         });

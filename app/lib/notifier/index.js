@@ -3,7 +3,7 @@
 function Notifier(lintworm, rocket){
     this.rocket = rocket || require('../rocket');
 
-    this.notifiers = ['linting', 'timesheets', 'updates', 'response_times'];
+    this.notifiers = ['linting', 'timesheets', 'updates', 'response_times', 'quotes'];
 
     this.notifiers.forEach((n) => {
         let type = require('./' + n);

@@ -12,6 +12,7 @@ describe(require('path').basename(__filename), function(){
     config.set('rocketchat.webhooks.veronicat', null);
     config.set('rocketchat.webhooks.katy_purry', null);
     config.set('rocketchat.webhooks.mr_meowgi', null);
+    config.set('rocketchat.webhooks.jessicat', null);
     config.set('rocketchat.mute', false);
 
     rocket.__test_override_config(config);

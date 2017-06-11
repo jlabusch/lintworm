@@ -16,7 +16,7 @@ function Poller(){
 
     hooks.enable(this, _L('hooks'));
 
-    this.__latest_update = new Date(today - config.get('lint.rewind_on_startup')*days);
+    this.__latest_update = new Date(today - config.get('wrms_poll.rewind_on_startup')*days);
     this.__previous_update = this.__latest_update;
 }
 
@@ -72,7 +72,7 @@ const poll_sql =
             .replace(/\s+/g, ' ');
 
 // Returns the list of WRs with updates since this.__latest_update
-// (defaulting to ${lint.rewind_on_startup} days ago).
+// (defaulting to ${rewind_on_startup} days ago).
 // Edge triggered rather than level triggered.
 // Limits the future to now+7 days so as to ignore egregious timesheet typos.
 Poller.prototype.poll = function(next){

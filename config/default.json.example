@@ -29,6 +29,7 @@
     },
     "wrms_poll": {
         "on_startup": true,
+        "rewind_on_startup": 0,
         "interval_seconds": 60,
         "ignore_org_id": [37, 1098, 1185, 1137, 1615],
         "ignore_org_if_contains_system": [18, 164, 1562],
@@ -41,6 +42,7 @@
             "port": 8000
         },
         "mute": false,
+        "stick_to_default_channel": false,
         "persona": "veronicat"
     },
     "timesheets": {
@@ -60,6 +62,7 @@
         "warn_at_X_mins_left": 30,
         "chase_overdue_every_X_mins": 30,
         "mute": false,
+        "stick_to_default_channel": false,
         "persona": "katy_purry"
     },
     "updates": {
@@ -70,7 +73,6 @@
     },
     "lint": {
         "flush_interval_minutes": 5,
-        "rewind_on_startup": 0.5,
         "check_unallocated": false,
         "max_allocations": 2,
         "hours_before_quote_required": 1,

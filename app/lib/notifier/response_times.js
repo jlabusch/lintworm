@@ -4,8 +4,10 @@ var log     = require('../log'),
     db      = require('../db'),
     rocket  = require('../rocket'),
     format  = rocket.format,
-    sla_match=require('../sla_match'),
-    channels= config.get('rocketchat.channels'),
+    sla_or_hosting_match=require('../sla_match'),
+    channels= config.get('response_times.stick_to_default_channel')
+                ? {}
+                : config.get('rocketchat.channels'),
     persona = config.get('response_times.persona'),
     muted   = config.get('response_times.mute'),
     webhook = config.get('rocketchat.webhooks.' + persona);
@@ -107,7 +109,7 @@ ResponseTimer.prototype.check_lateness_and_set_timeout = function(data, req){
         return;
     }
 
-    if (!sla_match(req.system)){
+    if (!sla_or_hosting_match(req.system)){
         log.info(label + "WR# " + req.request_id + ' ' + req.system + " isn't a Hosting or SLA system, skipping...");
         this.__test_hook && this.__test_hook(null, {__not_sla: true});
         return;
