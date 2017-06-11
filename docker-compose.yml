@@ -6,7 +6,7 @@ services:
         image: jlabusch/lintworm
         build: app
         ports:
-            - "8000:80"
+            - "8001:80"
         entrypoint:
             - npm
             - start

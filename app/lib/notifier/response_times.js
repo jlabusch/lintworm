@@ -4,6 +4,7 @@ var log     = require('../log'),
     db      = require('../db'),
     rocket  = require('../rocket'),
     format  = rocket.format,
+    sla_match=require('../sla_match'),
     channels= config.get('rocketchat.channels'),
     webhook = config.get('rocketchat.firehose');
 
@@ -17,6 +18,14 @@ function ResponseTimer(refs){
     this.rocket = refs.rocket || rocket;
     this.__test_hook = refs.__test_hook; // __test_hook !== undefined means we're in a unit test,
                                          // so don't setTimeout()
+    if (refs.__test_overrides){
+        if (refs.__test_overrides.hook){
+            this.__test_hook = refs.__test_overrides.hook;
+        }
+        if (refs.__test_overrides.config){
+            config = refs.__test_overrides.config;
+        }
+    }
 }
 
 ResponseTimer.prototype.start = function(notifier){
@@ -96,7 +105,7 @@ ResponseTimer.prototype.check_lateness_and_set_timeout = function(data, req){
         return;
     }
 
-    if (!req.system.match(/(Hosting)|(Service.Level.Agreement)|(?:^|_|\b)SLA(?:$|_|\b)/)){
+    if (!sla_match(req.system)){
         log.info(label + "WR# " + req.request_id + ' ' + req.system + " isn't a Hosting or SLA system, skipping...");
         this.__test_hook && this.__test_hook(null, {__not_sla: true});
         return;

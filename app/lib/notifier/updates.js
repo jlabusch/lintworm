@@ -15,6 +15,15 @@ function _L(f){
 function Updater(refs){
     this.rocket = refs.rocket || rocket;
     this.__test_hook = refs.__test_hook || function(){};
+
+    if (refs.__test_overrides){
+        if (refs.__test_overrides.config){
+            config = refs.__test_overrides.config;
+        }
+        if (refs.__test_overrides.hook){
+            this.__test_hook = refs.__test_overrides.hook;
+        }
+    }
 }
 
 Updater.prototype.start = function(notifier){

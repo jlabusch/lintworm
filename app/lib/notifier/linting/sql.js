@@ -6,6 +6,7 @@ exports.lint_req =
     tidy`SELECT r.request_id,
                 r.brief,
                 ru.fullname as requested_by,
+                o.org_code as org_id,
                 o.org_name as org,
                 r.request_on as created_on,
                 sys.system_desc as system,

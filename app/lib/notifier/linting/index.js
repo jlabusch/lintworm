@@ -26,6 +26,9 @@ function Linting(refs){
         if (refs.__test_overrides.rules){
             rules = refs.__test_overrides.rules;
         }
+        if (refs.__test_overrides.config){
+            config = refs.__test_overrides.config;
+        }
     }
 
     hooks.enable(this, _L('hooks'));
