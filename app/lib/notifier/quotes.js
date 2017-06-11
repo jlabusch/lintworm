@@ -1,6 +1,5 @@
 var log     = require('../log'),
     config	= require('config'),
-    our_email_domain = require('../our_email_domain'),
     rocket  = require('../rocket'),
     format  = rocket.format,
     http    = require('http'),
@@ -151,7 +150,9 @@ Budgeter.prototype.run = function(context){
                                 `> ${p.quotes.join('\n> ')}\n`;
                     }
 
-                    this.rocket.send(msg).to(webhook).then(this.__test_hook);
+                    const org = format.org(context.req.org),
+                        chan = channels[org]; // undefined is ok
+                    this.rocket.send(msg).to(webhook).channel(chan).then(this.__test_hook);
                 });
             }
         });
