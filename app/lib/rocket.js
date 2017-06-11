@@ -95,6 +95,10 @@ function __send(key, msg, uri, channel, next){
         next && next(null, null);
         return;
     }
+    if (config.get('rocketchat.mute')){
+        uri = null;
+        log.debug(label + 'muted');
+    }
     sent_messages[key] = new Date();
     const obj = {
         text: msg

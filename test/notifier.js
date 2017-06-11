@@ -13,6 +13,7 @@ describe(require('path').basename(__filename), function(){
     config.set('rocketchat.update', null);
     config.set('rocketchat.timesheet', null);
     config.set('rocketchat.quote', null);
+    config.set('rocketchat.mute', false);
 
     rocket.__test_override_config(config);
     rocket.__test_override_https({
@@ -423,7 +424,6 @@ In context:
                         should.exist(obj);
                         should.exist(obj.text);
                         obj.text.should.equal(msg);
-                        obj.missing_uri.should.equal(true);
                         done();
                     },
                     http: {

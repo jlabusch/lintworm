@@ -8,6 +8,7 @@
     },
     "rocketchat": {
         "dedup_window_hours": 24,
+        "mute": false,
         "lint": null,
         "firehose": null,
         "update": null,
