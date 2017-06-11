@@ -4,7 +4,9 @@ var log     = require('../log'),
     rocket  = require('../rocket'),
     format  = rocket.format,
     channels= config.get('rocketchat.channels'),
-    webhook = config.get('rocketchat.update');
+    persona = config.get('updates.persona'),
+    muted   = config.get('updates.mute'),
+    webhook = config.get('rocketchat.webhooks.' + persona);
 
 'use strict';
 
@@ -129,7 +131,7 @@ Updater.prototype.run = function(context){
             chan = channels[org]; // undefined is ok
         let s = `${org} ${format.wr(context.wr)}: ${msg}\n`;
         log.info(label + s);
-        this.rocket.send(s).to(webhook).channel(chan).then(this.__test_hook);
+        this.rocket.send(s).to(muted ? null : webhook).channel(chan).then(this.__test_hook);
     }else{
         log.debug(label + `no notes or status changes on ${context.wr}, only timesheets`);
     }

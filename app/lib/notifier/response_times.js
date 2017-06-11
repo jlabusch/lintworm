@@ -6,7 +6,9 @@ var log     = require('../log'),
     format  = rocket.format,
     sla_match=require('../sla_match'),
     channels= config.get('rocketchat.channels'),
-    webhook = config.get('rocketchat.firehose');
+    persona = config.get('response_times.persona'),
+    muted   = config.get('response_times.mute'),
+    webhook = config.get('rocketchat.webhooks.' + persona);
 
 'use strict';
 
@@ -141,7 +143,7 @@ ResponseTimer.prototype.check_lateness_and_set_timeout = function(data, req){
 
         let s = `${org} ${format.wr(req.request_id)} (${req.urgency}) ${msg}\n`;
         log.info(label + s);
-        this.rocket.send(s).to(webhook).channel(chan).then(this.__test_hook);
+        this.rocket.send(s).to(muted ? null : webhook).channel(chan).then(this.__test_hook);
     }else{
         this.__test_hook && this.__test_hook(null, {__ok: true});
     }

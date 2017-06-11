@@ -9,17 +9,18 @@
     "rocketchat": {
         "dedup_window_hours": 24,
         "mute": false,
-        "lint": null,
-        "firehose": null,
-        "update": null,
-        "quote": null,
+        "webhooks": {
+            "harambe": null,
+            "katy_purry": null,
+            "veronicat": null,
+            "mr_meowgi": null
+        },
         "channels": {
-            "Customer": "#foo"
+            "Company": "#example"
         },
         "nicks": {
             "bob@catalyst-eu.net": "@bob"
-        },
-        "timesheet": null
+        }
     },
     "server": {
         "port": 80,
@@ -33,10 +34,21 @@
         "ignore_org_if_contains_system": [18, 164, 1562],
         "ignore_updates_for_system": [2881, 2657, 2758]
     },
+    "quotes": {
+        "budget_csv_uri": {
+            "hostname": null,
+            "path": "/hours/{org}",
+            "port": 8000
+        },
+        "mute": false,
+        "persona": "veronicat"
+    },
     "timesheets": {
         "check_interval_minutes": 240,
         "check_on_startup": false,
-        "exclude_users": [1794, 4041]
+        "exclude_users": [1794, 4041],
+        "mute": false,
+        "persona": "mr_meowgi"
     },
     "response_times": {
         "urgency_hours": {
@@ -46,28 +58,28 @@
             "Anytime": 16
         },
         "warn_at_X_mins_left": 30,
-        "chase_overdue_every_X_mins": 30
+        "chase_overdue_every_X_mins": 30,
+        "mute": false,
+        "persona": "katy_purry"
     },
     "updates": {
-        "client_only": true
-    },
-    "quotes": {
-        "budget_csv_uri": {
-            "hostname": null,
-            "path": "/hours/{org}",
-            "port": 8000
-        }
+        "client_only": true,
+        "allow_channels": false,
+        "mute": false,
+        "persona": "katy_purry"
     },
     "lint": {
         "flush_interval_minutes": 5,
-        "rewind_on_startup": 0,
+        "rewind_on_startup": 0.5,
         "check_unallocated": false,
         "max_allocations": 2,
         "hours_before_quote_required": 1,
-        "acceptable_hours_budget_overrun": 3
+        "acceptable_hours_budget_overrun": 3,
+        "mute": false,
+        "persona": "veronicat"
     },
     "log": {
         "file": "-",
-        "level": "warn"
+        "level": "trace"
     }
 }

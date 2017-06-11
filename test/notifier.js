@@ -8,11 +8,10 @@ var assert  = require('assert'),
 
 describe(require('path').basename(__filename), function(){
 
-    config.set('rocketchat.firehose', null);
-    config.set('rocketchat.lint', null);
-    config.set('rocketchat.update', null);
-    config.set('rocketchat.timesheet', null);
-    config.set('rocketchat.quote', null);
+    config.set('rocketchat.webhooks.harambe', null);
+    config.set('rocketchat.webhooks.veronicat', null);
+    config.set('rocketchat.webhooks.katy_purry', null);
+    config.set('rocketchat.webhooks.mr_meowgi', null);
     config.set('rocketchat.mute', false);
 
     rocket.__test_override_config(config);

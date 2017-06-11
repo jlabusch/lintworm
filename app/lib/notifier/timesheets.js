@@ -2,7 +2,9 @@ var log     = require('../log'),
     db      = require('../db'),
     rocket  = require('../rocket'),
     config	= require('config'),
-    webhook = config.get('rocketchat.timesheet');
+    persona = config.get('timesheets.persona'),
+    muted   = config.get('timesheets.mute'),
+    webhook = config.get('rocketchat.webhooks.' + persona);
 
 'use strict';
 
@@ -75,7 +77,7 @@ TimesheetChecker.prototype.run = function(){
                             }).join('\n')
                             + "```\n"
                 log.warn(`${msg}---------------------------------\n`);
-                this.rocket.send(msg).to(webhook).then(this.__test_hook);
+                this.rocket.send(msg).to(muted ? null : webhook).then(this.__test_hook);
             }
         }
     });

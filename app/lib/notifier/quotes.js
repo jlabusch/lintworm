@@ -5,7 +5,9 @@ var log     = require('../log'),
     http    = require('http'),
     sla_match=require('../sla_match'),
     channels= config.get('rocketchat.channels'),
-    webhook = config.get('rocketchat.quote');
+    persona = config.get('quotes.persona'),
+    muted   = config.get('quotes.mute'),
+    webhook = config.get('rocketchat.webhooks.' + persona);
 
 'use strict';
 
@@ -152,7 +154,7 @@ Budgeter.prototype.run = function(context){
 
                     const org = format.org(context.req.org),
                         chan = channels[org]; // undefined is ok
-                    this.rocket.send(msg).to(webhook).channel(chan).then(this.__test_hook);
+                    this.rocket.send(msg).to(muted ? null : webhook).channel(chan).then(this.__test_hook);
                 });
             }
         });

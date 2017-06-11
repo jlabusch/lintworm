@@ -7,7 +7,7 @@ var assert  = require('assert'),
 
 describe(require('path').basename(__filename), function(){
     rocket.__test_override_config(config);
-    config.set('rocketchat.firehose', null); // default channel
+    config.set('rocketchat.webhooks.harambe', null); // default channel
 
     describe('format', function(){
         it('should abbreviate org name', function(){

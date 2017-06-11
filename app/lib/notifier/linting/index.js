@@ -7,7 +7,9 @@ var log     = require('../../log'),
     rocket  = require('../../rocket'),
     format  = rocket.format,
     poller  = require('../../wrms_polling'),
-    webhook = config.get('rocketchat.lint');
+    persona = config.get('lint.persona'),
+    muted   = config.get('lint.mute'),
+    webhook = config.get('rocketchat.webhooks.' + persona);
 
 'use strict';
 
@@ -89,7 +91,7 @@ Linting.prototype.flush_messages = function(next){
 
     this.msg_queue = [];
 
-    this.rocket.send(msg).about(key.join(',')).to(webhook).then(next);
+    this.rocket.send(msg).about(key.join(',')).to(muted ? null : webhook).then(next);
 }
 
 function to_chat_handle(email){
