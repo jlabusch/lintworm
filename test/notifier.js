@@ -409,7 +409,7 @@ ABC corp
 
 --------
 `,
-                msg = `New quote added to \`WR #1234\` https://wrms.catalyst.net.nz/1234
+                msg = `New quote added to ABC \`WR #1234\` https://wrms.catalyst.net.nz/1234
 In context:
 > 6 hours/month SLA budget
 > 0 SLA hours allocated to quotes this month
