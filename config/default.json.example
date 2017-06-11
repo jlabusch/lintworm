@@ -11,6 +11,7 @@
         "lint": null,
         "firehose": null,
         "update": null,
+        "quote": null,
         "channels": {
             "Customer": "#foo"
         },
@@ -48,6 +49,13 @@
     },
     "updates": {
         "client_only": true
+    },
+    "quotes": {
+        "budget_csv_uri": {
+            "hostname": null,
+            "path": "/hours/{org}",
+            "port": 8000
+        }
     },
     "lint": {
         "flush_interval_minutes": 5,
