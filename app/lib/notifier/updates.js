@@ -3,9 +3,6 @@ var log     = require('../log'),
     our_email_domain = require('../our_email_domain'),
     rocket  = require('../rocket'),
     format  = rocket.format,
-    channels= config.get('updates.stick_to_default_channel')
-                ? {}
-                : config.get('rocketchat.channels'),
     persona = config.get('updates.persona'),
     muted   = config.get('updates.mute'),
     webhook = config.get('rocketchat.webhooks.' + persona);
@@ -129,14 +126,35 @@ Updater.prototype.run = function(context){
     }
 
     if (msg){
-        const org = format.org(context.req.org),
-            chan = channels[org]; // undefined is ok. See also updates.stick_to_default_channel
+        const org = format.org(context.req.org);
         let s = `${org} ${format.wr(context.wr)}: ${msg}\n`;
         log.info(label + s);
-        this.rocket.send(s).to(muted ? null : webhook).channel(chan).then(this.__test_hook);
+
+        this.rocket
+            .send(s)
+            .to(muted ? null : webhook)
+            .channel(channel(org))
+            .then(this.__test_hook);
     }else{
         log.debug(label + `no notes or status changes on ${context.wr}, only timesheets`);
     }
+}
+
+// Map an org to a channel, taking the whitelist into account.
+// Empty whitelist means everything goes.
+function channel(org){
+    const channel_whitelist = config.get('updates.only_channels'),
+        channels= config.get('rocketchat.channels');
+
+    if (!channels[org]){
+        return null;
+    }
+    if (channel_whitelist.length > 0 &&
+        channel_whitelist.find(o => {return o === org}) === undefined)
+    {
+        return null;
+    }
+    return channels[org];
 }
 
 module.exports = Updater;

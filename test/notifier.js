@@ -264,12 +264,16 @@ describe(require('path').basename(__filename), function(){
     describe('updates', function(){
         let type = require('../lib/notifier/updates');
         config.set('updates.client_only', true);
+        config.set('rocketchat.channels', {'ABC': '#abc', 'FOO': '#foo'});
+        config.set('updates.only_channels', ['ABC']);
 
         it('with no notes and last status change by client', function(done){
             let sent = false;
             let notifier = new type({
                 __test_overrides: {
                     hook: function(err, msg){
+                        should.exist(msg);
+                        msg.channel.should.equal('#abc');
                         sent = true;
                     },
                     config: config
@@ -340,7 +344,7 @@ describe(require('path').basename(__filename), function(){
                 },
                 wr: 1234,
                 req: {
-                    org: 'ABC corp'
+                    org: 'FOO Corp'
                 }
             });
         });
@@ -349,7 +353,7 @@ describe(require('path').basename(__filename), function(){
                 __test_hook: function(err, msg){
                     should.exist(msg);
                     (msg.text.match(/Bob and Cindy have added notes/) !== null).should.equal(true);
-                    should.not.exist(msg.channel);
+                    msg.channel.should.equal('#abc');
                     done();
                 }
             });

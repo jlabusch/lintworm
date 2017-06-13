@@ -67,7 +67,7 @@
     },
     "updates": {
         "client_only": true,
-        "stick_to_default_channel": true,
+        "only_channels": ["Company"],
         "mute": false,
         "persona": "katy_purry"
     },
