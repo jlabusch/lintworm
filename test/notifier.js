@@ -37,13 +37,14 @@ describe(require('path').basename(__filename), function(){
             return {
                 activity: {
                     rows: [
-                        {fresh: true, email: 'a@b.c', fullname: 'Bob', source: 'status', status: 'New'}
+                        {fresh: true, email: 'a@b.c', fullname: 'Bob', source: 'status', status: 'New request'}
                     ]
                 },
                 wr: 1234,
                 req: {
                     request_id: 1234,
                     system: 'Service Level Agreement',
+                    status: 'New request',
                     urgency: 'As Soon As Possible',
                     created_on: (new Date()).toISOString(),
                     org: 'ABC corp'
@@ -115,6 +116,26 @@ describe(require('path').basename(__filename), function(){
             });
             let context = mk_context();
             context.req.urgency = "'Yesterday'";
+            let now = (new Date()).getTime(),
+                mins = 60*1000,
+                hours = 60*mins,
+                max = config.get('response_times.urgency_hours')[context.req.urgency]*hours,
+                warn = config.get('response_times.warn_at_X_mins_left')*mins;
+            context.req.created_on = now - max + warn - 5*mins;
+            notifier.run(context);
+        });
+        it('should NOT warn if status is boring', function(done){
+            let notifier = new type({
+                __test_hook: function(err, msg){
+                    should.not.exist(err);
+                    should.exist(msg);
+                    msg.__safe_status.should.equal(true);
+                    done();
+                }
+            });
+            let context = mk_context();
+            context.req.urgency = "'Yesterday'";
+            context.req.status = 'Ongoing Maintenance';
             let now = (new Date()).getTime(),
                 mins = 60*1000,
                 hours = 60*mins,

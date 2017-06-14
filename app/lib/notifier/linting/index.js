@@ -1,5 +1,5 @@
 var log     = require('../../log'),
-    config	= require('config'),
+    config  = require('config'),
     db      = require('../../db'),
     sql     = require('./sql'),
     hooks   = require('../../hook'),

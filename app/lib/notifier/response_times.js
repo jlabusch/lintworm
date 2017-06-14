@@ -95,6 +95,18 @@ function notes_by_us(list){
     );
 }
 
+function open_wr_status(s){
+    return [
+        'New request',
+        'Allocated',
+        'In Progress',
+        'Failed Testing',
+        'Provide Feedback',
+        'Need Info',
+        'Request for Quote'
+    ].indexOf(s) >= 0;
+}
+
 ResponseTimer.prototype.check_lateness_and_set_timeout = function(data, req){
     const label = _L('check');
 
@@ -112,6 +124,12 @@ ResponseTimer.prototype.check_lateness_and_set_timeout = function(data, req){
     if (!sla_or_hosting_match(req.system)){
         log.info(label + "WR# " + req.request_id + ' ' + req.system + " isn't a Hosting or SLA system, skipping...");
         this.__test_hook && this.__test_hook(null, {__not_sla: true});
+        return;
+    }
+
+    if (!open_wr_status(req.status)){
+        log.info(label + "WR# " + req.request_id + ' status ' + req.status + " is safe, not chasing");
+        this.__test_hook && this.__test_hook(null, {__safe_status: true});
         return;
     }
 
