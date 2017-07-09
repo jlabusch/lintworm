@@ -13,6 +13,8 @@ exports.lint_req =
                 stat.lookup_desc as status,
                 urg.lookup_desc as urgency,
                 imp.lookup_desc as importance,
+                r.requested_by_date,
+                r.agreed_due_date,
                 (SELECT
                     SUM(
                         CASE WHEN work_units = 'days' THEN work_quantity*8 ELSE
