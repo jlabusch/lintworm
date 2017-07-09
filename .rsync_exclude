@@ -1,0 +1,8 @@
+docker-compose.yml
+README.md
+.git
+coverage
+Makefile
+app/Makefile
+app/*.monkeypatch
+app/.eslintrc.json

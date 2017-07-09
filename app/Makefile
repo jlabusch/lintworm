@@ -15,6 +15,6 @@ test: app
         -v $$(dirname $$PWD)/app/lib:/opt/lib:ro \
         -v $$(dirname $$PWD)/app/index.js:/opt/index.js:ro \
         -v $$(dirname $$PWD)/app/.eslintrc.json:/opt/.eslintrc.json:ro \
-        -v $$(dirname $$PWD)/config:/opt/config:ro \
+        -v $$(dirname $$PWD)/app/config:/opt/config:ro \
         $$(grep image ../docker-compose.yml | awk '{print $$NF}') \
         test
