@@ -1,8 +1,9 @@
-docker-compose.yml
-README.md
 .git
-coverage
-Makefile
-app/Makefile
-app/*.monkeypatch
+.gitignore
+README.md
 app/.eslintrc.json
+app/config/default.json
+coverage
+docker-compose.yml
+rocketchat
+test
