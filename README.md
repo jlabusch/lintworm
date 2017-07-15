@@ -35,3 +35,15 @@ Lintworm watches WRMS and mentions things we might want to react to.
 ```javascript
 "posttest": "CODECLIMATE_REPO_TOKEN=$token ./node_modules/.bin/codeclimate-test-reporter < ./coverage/lcov.info",
 ```
+
+### How to contribute
+
+*Imposter syndrome disclaimer*: I want your help. No really, I do.
+
+There might be a little voice inside that tells you you're not ready; that you need to do one more tutorial, or learn another framework, or write a few more blog posts before you can help me with this project.
+
+I assure you, that's not the case.
+
+Take a look at the [Roadmap](https://github.com/jlabusch/lintworm/projects/1) or suggest an idea of your own. If you'd like to throw ideas around before starting any development, happy to do that. If you'd rather start by improving documentation, test coverage or even just giving general feedback, you're very welcome.
+
+Thank you for contributing!
