@@ -87,8 +87,10 @@ ResponseTimer.prototype.__time_to_next_business_period = function(current_day){
     switch(current_day){
     case 5: // Fri
         result_hours += 24;
+        // break omitted
     case 6: // Sat
         result_hours += 24;
+        // break omitted
     default:
         // find tomorrow
         result_hours += 24-work_end_hour + work_start_hour;
