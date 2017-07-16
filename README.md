@@ -14,11 +14,12 @@ Lintworm watches WRMS and mentions things we might want to react to.
 
 ### Configuration:
 
- - Create `./config/default.json` based on `./config/default.json.example`
- - The hardest bits of config to come by are `db.host` because access is limited and `rocketchat.*` because someone needs to create incoming webhooks for you. You can't run without `db.host`, but leaving `rocketchat.* = null` is fine for testing.
+ - Create `./app/config/default.json` based on `./app/config/default.json.example`
+ - The hardest bits of config to come by are `db.host` because access is limited and `rocketchat.*` because someone needs to create incoming webhooks for you. You can't run without `db.host`, but leaving `rocketchat.webhooks.* = null` is fine for testing.
 
 ### Useful commands:
 
+ - `make build` to create the Docker image
  - `make test` to run ESLint and Mocha
  - `make run` to start the app; roughly equivalent to `docker-compose up`
  - `docker-compose down` to stop the app
@@ -28,7 +29,7 @@ Lintworm watches WRMS and mentions things we might want to react to.
  - `make test` uses Istanbul to write code coverage metrics to `./coverage/lcov-report/index.html`
  - We monkeypatch Bunyan to change the "simple" log format
  - The RocketChat incoming webhook script is `./rocketchat/incoming.js`
- - You can change the log level in `./config/default.json:log.level`
+ - You can change the log level in `./app/config/default.json:log.level`
  - To add new notifiers, take a look in `./app/lib/notifiers/*`. Use `app/lib/hook.js` if you can, to avoid additional queries.
  - To send test coverage reports to CodeClimate, add the following script to `package.json`:
 
