@@ -15,10 +15,10 @@ var log     = require('../log'),
 'use strict';
 
 const mins = 60*1000,
-      hours = 60*mins,
-      work_hours_per_day = 8,
-      work_end_hour = 17,
-      work_start_hour = work_end_hour - work_hours_per_day;
+    hours = 60*mins,
+    work_hours_per_day = 8,
+    work_end_hour = 17,
+    work_start_hour = work_end_hour - work_hours_per_day;
 
 
 function _L(f){
