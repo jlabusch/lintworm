@@ -28,6 +28,13 @@ describe(require('path').basename(__filename), function(){
         }
     });
 
+    const day_start = 9,
+          day_end = 17,
+          secs  = 1000,
+          mins  = 60*secs,
+          hours = 60*mins,
+          over_night = (24-day_end + day_start)*hours;
+
     describe('response_times', function(){
         let type = require('../lib/notifier/response_times');
         db.__test_override(
@@ -105,6 +112,42 @@ describe(require('path').basename(__filename), function(){
             );
             notifier.run(context);
         });
+        it('should find the next business day', function(done){
+            let notifier = new type({});
+            (over_night).should.equal(notifier.__time_to_next_business_period(1));
+            (over_night).should.equal(notifier.__time_to_next_business_period(2));
+            (over_night).should.equal(notifier.__time_to_next_business_period(3));
+            (over_night).should.equal(notifier.__time_to_next_business_period(4));
+            (over_night + 48*hours).should.equal(notifier.__time_to_next_business_period(5));
+            (over_night + 24*hours).should.equal(notifier.__time_to_next_business_period(6));
+            (over_night).should.equal(notifier.__time_to_next_business_period(0));
+            done();
+        });
+        it('should find future business hours', function(done){
+            let notifier = new type({});
+
+            let d1 = new Date('2017-06-01 14:23:01 GMT+0'),
+                t = function(h, answer, d){
+                        d = d || d1;
+                        let ts = notifier.__add_business_hours(d,  h);
+                        new Date(ts).toISOString().should.equal(new Date(answer).toISOString());
+                    };
+            t(1, '2017-06-01 15:23:01 GMT+0');
+            t(2, '2017-06-01 16:23:01 GMT+0');
+            t(3, '2017-06-02 9:23:01 GMT+0');
+            t(4, '2017-06-02 10:23:01 GMT+0');
+            t(8, '2017-06-02 14:23:01 GMT+0');
+            t(16,'2017-06-05 14:23:01 GMT+0');
+
+            t(1.5,'2017-06-01 15:53:01 GMT+0');
+            t(3.75,'2017-06-02 10:08:01 GMT+0');
+
+            let d2 = new Date('2017-06-01 21:29:00 GMT+0');
+
+            t(2, '2017-06-02 11:00:00 GMT+0', d2);
+
+            done();
+        });
         it('should warn if we\'re nearing the limit', function(done){
             let notifier = new type({
                 __test_hook: function(err, msg){
@@ -117,11 +160,58 @@ describe(require('path').basename(__filename), function(){
             let context = mk_context();
             context.req.urgency = "'Yesterday'";
             let now = (new Date()).getTime(),
-                mins = 60*1000,
-                hours = 60*mins,
                 max = config.get('response_times.urgency_hours')[context.req.urgency]*hours,
-                warn = config.get('response_times.warn_at_X_mins_left')*mins;
+                warn = max * config.get('response_times.warn_at_X_percent')/100;
             context.req.created_on = now - max + warn - 5*mins;
+            notifier.run(context);
+        });
+        it('should respect the greater of importance/urgency', function(done){
+            let notifier = new type({
+                __test_hook: function(err, msg){
+                    should.not.exist(err);
+                    should.exist(msg);
+                    should.exist(msg.text.match(/needs to be responded to/));
+                    done();
+                }
+            });
+            let context = mk_context();
+            context.req.urgency = "Anytime";
+            context.req.importance = 'Critical!';
+            let now = (new Date()).getTime(),
+                max = config.get('response_times.urgency_hours')["'Yesterday'"]*hours,
+                warn = max * config.get('response_times.warn_at_X_percent')/100;
+            context.req.created_on = now - max + warn - 5*mins;
+            notifier.run(context);
+        });
+        it('should ignore "After Specified Date" requests', function(done){
+            let notifier = new type({
+                __test_hook: function(err, msg){
+                    should.not.exist(err);
+                    should.exist(msg);
+                    should.exist(msg.__no_urgency);
+                    done();
+                }
+            });
+            let context = mk_context();
+            context.req.urgency = "After Specified Date";
+            let now = (new Date()).getTime();
+            context.req.created_on = now - 1000*hours;
+            notifier.run(context);
+        });
+        it('should obey "Before Specified Date" requests', function(done){
+            let notifier = new type({
+                __test_hook: function(err, msg){
+                    should.not.exist(err);
+                    should.exist(msg);
+                    should.exist(msg.text.match(/deadline coming up/));
+                    done();
+                }
+            });
+            let context = mk_context();
+            context.req.urgency = "Before Specified Date";
+            let now = (new Date()).getTime();
+            context.req.created_on = now - 24*hours;
+            context.req.agreed_due_date = now + 1*hours;
             notifier.run(context);
         });
         it('should NOT warn if status is boring', function(done){
@@ -137,10 +227,8 @@ describe(require('path').basename(__filename), function(){
             context.req.urgency = "'Yesterday'";
             context.req.status = 'Ongoing Maintenance';
             let now = (new Date()).getTime(),
-                mins = 60*1000,
-                hours = 60*mins,
                 max = config.get('response_times.urgency_hours')[context.req.urgency]*hours,
-                warn = config.get('response_times.warn_at_X_mins_left')*mins;
+                warn = max * config.get('response_times.warn_at_X_percent')/100;
             context.req.created_on = now - max + warn - 5*mins;
             notifier.run(context);
         });
@@ -156,8 +244,6 @@ describe(require('path').basename(__filename), function(){
             let context = mk_context();
             context.req.urgency = "'Yesterday'";
             let now = (new Date()).getTime(),
-                mins = 60*1000,
-                hours = 60*mins,
                 max = config.get('response_times.urgency_hours')[context.req.urgency]*hours;
             context.req.created_on = now - max - 5*mins;
             notifier.run(context);

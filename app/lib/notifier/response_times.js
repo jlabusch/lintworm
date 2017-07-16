@@ -15,7 +15,11 @@ var log     = require('../log'),
 'use strict';
 
 const mins = 60*1000,
-      hours = 60*mins;
+      hours = 60*mins,
+      work_hours_per_day = 8,
+      work_end_hour = 17,
+      work_start_hour = work_end_hour - work_hours_per_day;
+
 
 function _L(f){
     return require('path').basename(__filename) + '#' + f + ' - ';
@@ -74,7 +78,84 @@ function max_urgency(urg, imp){
     return urg;
 }
 
-// Return {
+// Returns relative msec timestamp of the gap between the end of current_day
+// to the start of the next business day.
+//
+ResponseTimer.prototype.__time_to_next_business_period = function(current_day){
+    let result_hours = 0;
+
+    switch(current_day){
+        case 5: // Fri
+            result_hours += 24;
+        case 6: // Sat
+            result_hours += 24;
+        default:
+            // find tomorrow
+            result_hours += 24-work_end_hour + work_start_hour;
+    }
+
+    return result_hours*hours;
+}
+
+// start_date should be an absolute Date,
+// hours_to_add should be a relative number of hours (hours, e.g. 12, not msec timestamp).
+//
+// Returns absolute msec timestamp rather than a Date.
+//
+ResponseTimer.prototype.__add_business_hours = function(start_date, hours_to_add){
+
+    let rel_time  = start_date.getHours() * hours +
+                    start_date.getMinutes() * mins +
+                    start_date.getSeconds() * 1000 +
+                    start_date.getMilliseconds(),
+        final_adjustment = 0,
+        time_added = 0;
+
+    // If start_date is after business hours, pretend the request came in
+    // right at the end of the working day.
+    const work_end_time = work_end_hour * hours;
+    if (rel_time > work_end_time){
+        final_adjustment = work_end_time - rel_time;
+        rel_time = work_end_time;
+    }
+
+    let time_left_to_add = hours_to_add*hours;
+
+    const label = _L('__add_business_hours');
+
+    while (time_left_to_add > 0){
+        const available = work_end_hour*hours - rel_time;
+
+        log.trace(label + `time_added:       ${time_added/hours} hours,
+                           time_left_to_add: ${time_left_to_add/hours} hours,
+                           time available:   ${available/hours} hours`
+                           .replace(/\s+/g, ' '));
+
+        if (time_left_to_add <= available){
+            log.trace(label + `+${time_left_to_add/hours} hours => done`);
+            time_added += time_left_to_add;
+            log.trace(label + `Total: ${time_added/hours} hours`);
+            time_left_to_add = 0;
+        }else{
+            if (available > 0){
+                time_added += available;
+                time_left_to_add -= available;
+                log.trace(label + `+${available/hours} hours => need another day`);
+            }
+
+            // go to next day
+            let curr = new Date(start_date.getTime() + time_added),
+                jump = this.__time_to_next_business_period(curr.getDay());
+            time_added += jump;
+            log.trace(label + `+${jump/hours} hours to next work morning at ${work_start_hour}am`);
+            rel_time = work_start_hour*hours;
+        }
+    }
+
+    return start_date.getTime() + time_added + final_adjustment;
+}
+
+// Returns {
 //   warn: boolean,
 //   warn_in: ms from now,
 //   overdue: boolean,
@@ -86,7 +167,7 @@ function max_urgency(urg, imp){
 // response_times.urgency_hours give you the response time windows.
 // response_times.warn_at_X_percent gives you the warn/overdue split.
 //
-// If it's due by a specific date, assume due at noon and figure out warn_in and due_in.
+// If it's due by a specific date, assume due at 4pm and figure out warn_in and due_in.
 // Otherwise, created_on + urgency_hours gives you warn_in and due_in.
 // Extend warn_in and due_in as needed to fall within a business day (for non-Critical.)
 //
@@ -96,7 +177,9 @@ ResponseTimer.prototype.__lateness = function(req){
     const rt_hours = config.get('response_times.urgency_hours'),
         warn_percent = config.get('response_times.warn_at_X_percent')/100,
         now = this.__test_time_now || new Date(),
-        then = new Date(req.created_on).getTime(),
+        now_time = now.getTime(),
+        then = new Date(req.created_on),
+        then_time = then.getTime(),
         urgency = max_urgency(req.urgency, req.importance);
 
     if (urgency === 'After Specified Date'){
@@ -106,15 +189,15 @@ ResponseTimer.prototype.__lateness = function(req){
 
     let due_at  = undefined,
         warn_at = undefined,
-        type = 'sla';
+        type = 'dynamic'; // or "fixed"
 
     // Agreed-due and requested-by-date overrides urgency
-    // USUALLY these are only set for urgency == {Before,On} Specified Date
+    // USUALLY these are only set for urgency == {Before,On} Specified Date.
+    // Agreed due is more important than requested by.
     const fixed_due_date = req.agreed_due_date || req.requested_by_date;
     if (fixed_due_date){
-        // Agreed due is more important than requested by
-        due_at = (new Date(fixed_due_date)).getTime() + 12*hours;
-        warn_at = then + (due_at - then)*warn_percent;
+        due_at = (new Date(fixed_due_date)).getTime() + 16*hours;
+        warn_at = then_time + (due_at - then_time)*warn_percent;
         type = 'fixed';
     }else{
         let time_limit = rt_hours[urgency];
@@ -124,70 +207,23 @@ ResponseTimer.prototype.__lateness = function(req){
             return null;
         }
 
-        const work_hours_per_day = 8,
-            work_end_hour = 17,
-            hour_now = now.getHours() + now.getMinutes()/60,
-            hours_until_work_end = work_end_hour - hour_now,
-            work_hours_left_today = Math.min(hours_until_work_end, work_hours_per_day);
-
-        if (urgency === "'Yesterday'" || time_limit <= work_hours_left_today){
+        if (urgency === "'Yesterday'"){
             // Then we need to take care of it on this calendar* day
-            due_at = then + time_limit*hours;
-            warn_at = then + time_limit*hours*warn_percent;
+            due_at = then_time + time_limit*hours;
+            warn_at = then_time + time_limit*hours*warn_percent;
         }else{
-            // Push to a future business day
-            function push(limit){
-                let offset_hours = 0,
-                    day_of_week = now.getDay(); // FIXME: "then" instead of "now"?
-
-                const started_on_business_day = day_of_week > 0 && day_of_week < 6;
-
-                // If this is a weekend, immediately push to Monday
-                function skip_weekend(){
-                    switch(day_of_week){
-                        case 6:
-                            offset_hours += 24;
-                            // fall through
-                        case 7:
-                        case 0:
-                            offset_hours += 24;
-                            day_of_week = 1;
-                    }
-                }
-
-                skip_weekend();
-
-                // Eat up the rest of today
-                if (started_on_business_day && work_hours_left_today > 0){
-                    limit -= work_hours_left_today;
-                }
-
-                while (limit >= work_hours_per_day){
-                    ++day_of_week;
-                    offset_hours += 24;
-
-                    skip_weekend();
-
-                    limit -= work_hours_per_day;
-                }
-
-                return then + offset_hours + limit;
-            }
-
-            warn_at = push(time_limit*warn_percent)*hours;
-            due_at = push(time_limit)*hours;
+            due_at = this.__add_business_hours(then, time_limit);
+            warn_at = this.__add_business_hours(then, time_limit*warn_percent);
         }
 
     }
 
-    const now_t = now.getTime();
-
     return {
         message_type: type,
-        warn_in: warn_at - now_t,
-        warn:    now_t > warn_at,
-        due_in:  due_at - now_t,
-        overdue: now_t > due_at
+        warn_in: warn_at - now_time,
+        warn:    now_time > warn_at,
+        due_in:  due_at - now_time,
+        overdue: now_time > due_at
     };
 }
 
@@ -321,11 +357,11 @@ ResponseTimer.prototype.check_lateness_and_set_timeout = function(data, req){
 
     let messages = {
         overdue: {
-            sla: "is past due for response, we're probably breaching SLA",
+            dynamic: "is past due for response, we're probably breaching SLA",
             fixed: "should have been done by now, please follow up"
         },
         warn: {
-            sla: "needs to be responded to, please",
+            dynamic: "needs to be responded to, please",
             fixed: "has a deadline coming up soon"
         }
     };
