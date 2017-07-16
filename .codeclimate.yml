@@ -7,3 +7,6 @@ engines:
           mass_threshold: 100
 exclude_paths:
 - "test/"
+ratings:
+  paths:
+  - "app/**/*"
