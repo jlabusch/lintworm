@@ -1,3 +1,5 @@
+/*eslint no-fallthrough: ["error", { "commentPattern": "break[\\s\\w]*omitted" }]*/
+
 var log     = require('../log'),
     config	= require('config'),
     our_email_domain = require('../our_email_domain'),
