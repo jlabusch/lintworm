@@ -85,13 +85,13 @@ ResponseTimer.prototype.__time_to_next_business_period = function(current_day){
     let result_hours = 0;
 
     switch(current_day){
-        case 5: // Fri
-            result_hours += 24;
-        case 6: // Sat
-            result_hours += 24;
-        default:
-            // find tomorrow
-            result_hours += 24-work_end_hour + work_start_hour;
+    case 5: // Fri
+        result_hours += 24;
+    case 6: // Sat
+        result_hours += 24;
+    default:
+        // find tomorrow
+        result_hours += 24-work_end_hour + work_start_hour;
     }
 
     return result_hours*hours;
