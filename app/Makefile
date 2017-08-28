@@ -6,7 +6,7 @@ COMPOSE=docker-compose
 app:
 	$(COMPOSE) build app
 
-test: app
+test:
 	mkdir -p ../coverage
 	$(DOCKER) run -it --rm \
         -v $$(dirname $$PWD)/test:/opt/test:ro \
