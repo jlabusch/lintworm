@@ -238,7 +238,7 @@ let notes_sql = `
         FROM request_activity ra
         JOIN usr u ON u.user_no=ra.worker_id
         WHERE ra.request_id=$1 AND
-            ra.source = 'note'
+            ra.source IN ('note', 'status')
         ORDER BY ra.date ASC
     `.replace(/\s+/g, ' ');
 
