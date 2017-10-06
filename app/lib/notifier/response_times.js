@@ -307,7 +307,7 @@ function raised_by_us(activity_rows){
         return false;
     }
 
-    const first_status = activity_rows.find(x => { x.source === 'status' });
+    const first_status = activity_rows.find(x => { return x.source === 'status' });
 
     if (!first_status){
         return false;
