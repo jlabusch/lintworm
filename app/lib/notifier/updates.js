@@ -41,6 +41,7 @@ Updater.prototype.run = function(context){
             last_note_by_client: undefined,
             last_note_by: undefined,
             last_note: undefined,
+            need_to_show_brief: true,
             last_status: undefined,
             last_status_by_client: undefined,
             last_status_by: undefined
@@ -66,6 +67,10 @@ Updater.prototype.run = function(context){
                 intel.last_status = r.status;
                 intel.last_status_by_client = !ours;
                 intel.last_status_by = name;
+            }
+        }else{
+            if (r.source === 'status'){
+                intel.need_to_show_brief = false;
             }
         }
     });
@@ -127,7 +132,7 @@ Updater.prototype.run = function(context){
 
     if (msg){
         const org = format.org(context.req.org);
-        let s = `${org} ${format.wr(context.wr)}: ${msg}\n`;
+        let s = `${org} ${format.wr(context.wr)}${intel.need_to_show_brief ? ' ' + format.brief(context.req.brief) : ''}: ${msg}\n`;
         log.info(label + s);
 
         this.rocket

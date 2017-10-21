@@ -381,6 +381,7 @@ describe(require('path').basename(__filename), function(){
                     hook: function(err, msg){
                         should.exist(msg);
                         msg.channel.should.equal('#abc');
+                        (msg.text.match(/Brief desc/) !== null).should.equal(true);
                         sent = true;
                     },
                     config: config
@@ -389,12 +390,45 @@ describe(require('path').basename(__filename), function(){
             notifier.run({
                 activity: {
                     rows: [
-                        {fresh: true, email: 'a@b.c', fullname: 'Bob', source: 'status', status: 'New'},
+                        {fresh: true, email: 'a@b.c', fullname: 'Bob', source: 'status', status: 'Production Ready'},
                     ]
                 },
-                wr: 1234,
+                wr: 12345,
                 req: {
-                    org: 'ABC corp'
+                    org: 'ABC corp',
+                    brief: 'Brief desc'
+                }
+            });
+
+            setTimeout(function(){
+                sent.should.equal(true);
+                done();
+            }, 100);
+        });
+        it('with no notes and subsequent status change', function(done){
+            let sent = false;
+            let notifier = new type({
+                __test_overrides: {
+                    hook: function(err, msg){
+                        should.exist(msg);
+                        msg.channel.should.equal('#abc');
+                        (msg.text.match(/Brief desc/) !== null).should.equal(false);
+                        sent = true;
+                    },
+                    config: config
+                }
+            });
+            notifier.run({
+                activity: {
+                    rows: [
+                        {fresh: false, email: 'a@b.c', fullname: 'Bob', source: 'status', status: 'Production Ready'},
+                        {fresh: true,  email: 'a@b.c', fullname: 'Bob', source: 'status', status: 'Reviewed'},
+                    ]
+                },
+                wr: 12345,
+                req: {
+                    org: 'ABC corp',
+                    brief: 'Brief desc'
                 }
             });
 
@@ -416,14 +450,15 @@ describe(require('path').basename(__filename), function(){
             notifier.run({
                 activity: {
                     rows: [
-                        {fresh: true, email: 'a@b.c', fullname: 'Bob', source: 'status', status: 'New'},
+                        {fresh: true, email: 'a@b.c', fullname: 'Bob', source: 'status', status: 'New request'},
                         {fresh: true, email: 'cindy@catalyst-eu.net', fullname: 'Cindy', source: 'status', status: 'Need info'},
                         {fresh: true, email: 'cindy@catalyst-eu.net', fullname: 'Cindy', source: 'note', note: 'words'}
                     ]
                 },
                 wr: 1234,
                 req: {
-                    org: 'ABC corp'
+                    org: 'ABC corp',
+                    brief: 'Brief desc'
                 }
             });
 
@@ -444,14 +479,15 @@ describe(require('path').basename(__filename), function(){
             notifier.run({
                 activity: {
                     rows: [
-                        {fresh: true, email: 'a@b.c', fullname: 'Bob', source: 'status', status: 'New'},
+                        {fresh: true, email: 'a@b.c', fullname: 'Bob', source: 'status', status: 'New request'},
                         {fresh: true, email: 'cindy@catalyst-eu.net', fullname: 'Cindy', source: 'status', status: 'Need info'},
                         {fresh: true, email: 'a@b.c', fullname: 'Bob', source: 'note', note: 'Here is info'}
                     ]
                 },
                 wr: 1234,
                 req: {
-                    org: 'FOO Corp'
+                    org: 'FOO Corp',
+                    brief: 'Brief desc'
                 }
             });
         });
@@ -474,7 +510,8 @@ describe(require('path').basename(__filename), function(){
                 },
                 wr: 1234,
                 req: {
-                    org: 'ABC corp'
+                    org: 'ABC corp',
+                    brief: 'Brief desc'
                 }
             });
         });

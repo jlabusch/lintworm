@@ -119,7 +119,7 @@ Linting.prototype.process_update = function(x, xs, fresh_after, next){
                             .filter((r) => { return r.warning })
                             .map((r) => { return r.warning }),
             last_row = data.rows[data.rows.length - 1];
-        if (warnings.length && !last_row.org.match(/Humanitarian/)){ // then there's something unusual
+        if (warnings.length){ // then there's something unusual
             this.msg_queue.push({req: last_row, warnings: warnings});
         }
         process.nextTick(() => { this.process_update(xs.shift(), xs, fresh_after, next); });
