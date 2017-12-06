@@ -48,6 +48,7 @@ exports.__test_override_config = function(x){ config = x; }
 
 exports.format = {
     wr: (n) => { return `\`WR #${n}\` ${wr_uri}/${n}` },
+    wr_num: (n) => { return `\`WR #${n}\`` },
     org: to_org_abbrev,
     status: (s) => { return `\`${s}\`` },
     brief: (b) => { return `*${b.length > 45 ? b.slice(0,42) + '...' : b}*` }

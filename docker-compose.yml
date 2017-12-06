@@ -15,4 +15,5 @@ services:
             - ./app/config:/opt/config:ro
             - ./app/index.js:/opt/index.js:ro
             - ./app/.eslintrc.json:/opt/.eslintrc.json:ro
+            - ./resolution_times:/opt/resolution_times
 
