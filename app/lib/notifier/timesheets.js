@@ -28,12 +28,25 @@ const timesheet_sql = `
         SELECT  u.fullname,
                 u.email,
                 (
+                    SELECT array_to_string(
+                        array(
+                            SELECT COALESCE(SUM(rt.work_quantity),0)
+                            FROM (SELECT generate_series('__DATE1', '__DATE2', interval '1 day') AS d) dates
+                            LEFT JOIN request_timesheet rt ON
+                                date_trunc('day', dates.d)=date_trunc('day', rt.work_on) AND
+                                rt.work_by_id=u.user_no
+                            GROUP by dates.d
+                            ORDER by dates.d
+                        ),
+                        ','
+                    )
+                ) AS history,
+                (
                     SELECT COALESCE(SUM(rt.work_quantity),0)
                     FROM request_timesheet rt
                     WHERE rt.work_by_id=u.user_no AND
-                          rt.work_on >= current_date - interval '10 days' AND
-                          rt.work_on < current_date - interval '3 days'
-                )/40*100 AS worked
+                          rt.work_on >= current_date - interval '14 days'
+                )/80*100 AS worked
         FROM usr u
         WHERE u.active AND
               u.email LIKE '${config.get('server.email_domain_like')}' AND
@@ -44,7 +57,14 @@ const timesheet_sql = `
         .replace(/\s+/g, ' ');
 
 function check_timesheets(next){
-    db.get().query("timesheets", timesheet_sql)
+    let now = new Date(),
+        date2 = now.getFullYear() + '-' + (now.getMonth()+1) + '-' + now.getDate();
+
+    now.setDate(now.getDate() - 14);
+
+    let date1 = now.getFullYear() + '-' + (now.getMonth()+1) + '-' + now.getDate();
+
+    db.get().query("timesheets", timesheet_sql.replace('__DATE1', date1).replace('__DATE2', date2))
         .then(
             (data) => { next(null, data); },
             (err) => { next(err); }
@@ -60,6 +80,27 @@ const miagi = [
     "Wax on, wax off. Wax on, wax off"
 ];
 
+function format_history(h){
+    return h.split(',')
+            .map(
+                n => {
+                    let i = parseFloat(n);
+                    if (isNaN(i)){
+                        i = 0;
+                    }
+                    if (i > 6){
+                        return '#';
+                    }else if (i > 4){
+                        return '=';
+                    }else if (i > 2){
+                        return '-';
+                    }else{
+                        return '_';
+                    }
+                }
+            ).join('');
+}
+
 TimesheetChecker.prototype.run = function(){
     let label = _L('run');
     check_timesheets((err, data) => {
@@ -69,12 +110,13 @@ TimesheetChecker.prototype.run = function(){
             return;
         }
         if (data && data.rows && data.rows.length > 0){
-            let too_low = data.rows.filter((r) => { return r.worked < 70; });
+            let too_low = data.rows.filter((r) => { return r.worked < 85; });
             if (too_low.length > 0){
                 let quote = (Math.random() * miagi.length)|0;
                 let msg = `${miagi[quote]}: \n` + "```" +
                             too_low.map((r) => {
-                                return r.fullname + ' '.repeat(30 - r.fullname.length) + (r.worked|0) + '%';
+                                let hist = format_history(r.history);
+                                return r.fullname + ' '.repeat(30 - r.fullname.length) + hist + '  ' + (r.worked|0) + '%';
                             }).join('\n')
                             + "```\n"
                 log.warn(`${msg}---------------------------------\n`);

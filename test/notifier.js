@@ -266,13 +266,13 @@ describe(require('path').basename(__filename), function(){
         it('should flag < 70%', function(done){
             db.__test_override(
                 new MockDB([
-                    [null, {rows: [{fullname: 'Bob', worked: 69.0}]}]
+                    [null, {rows: [{fullname: 'Bob', worked: 69.0, history: '0,0,0,0,0,0'}]}]
                 ])
             );
             let notifier = new type({
                 __test_hook: function(err, msg){
                     should.exist(msg);
-                    should.exist(msg.text.match(/Bob\s+69%/));
+                    should.exist(msg.text.match(/Bob.*\s+69%/));
                     done();
                 }
             });
@@ -282,14 +282,14 @@ describe(require('path').basename(__filename), function(){
             db.__test_override(
                 new MockDB([
                     [null, {rows: [
-                        {fullname: 'Bob', worked: 0}
+                        {fullname: 'Bob', worked: 0, history: '0,0,0,0,0,0'}
                     ]}]
                 ])
             );
             let notifier = new type({
                 __test_hook: function(err, msg){
                     should.exist(msg);
-                    should.exist(msg.text.match(/Bob\s+0%/));
+                    should.exist(msg.text.match(/Bob.*\s+0%/));
                     done();
                 }
             });
