@@ -88,12 +88,22 @@ function format_history(h){
                     if (isNaN(i)){
                         i = 0;
                     }
-                    if (i > 6){
-                        return '#';
+                    if (i > 7){
+                        return '█';
+                    }else if (i > 6){
+                        return '▇';
+                    }else if (i > 5){
+                        return '▆';
                     }else if (i > 4){
-                        return '=';
+                        return '▅';
+                    }else if (i > 3){
+                        return '▄';
                     }else if (i > 2){
-                        return '-';
+                        return '▃';
+                    }else if (i > 1){
+                        return '▃';
+                    }else if (i > 0){
+                        return '▁';
                     }else{
                         return '_';
                     }
